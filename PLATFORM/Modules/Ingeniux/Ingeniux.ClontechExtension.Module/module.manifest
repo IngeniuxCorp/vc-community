@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<module>
+  <id>Ingeniux.ClontechExtension.Module</id>
+  <version>1.0.0</version>
+  <platformVersion>2.5.0</platformVersion>
+  <dependencies>
+    <dependency id="VirtoCommerce.Core" version="2.5.0" />
+  </dependencies>
+
+  <title>Ingeniux.ClontechExtension extension module</title>
+  <description>Ingeniux.ClontechExtension extensions</description>
+  <authors>
+    <author>Ingeniux</author>
+  </authors>
+  <owners>
+    <owner>Ingeniux</owner>
+  </owners>
+  <projectUrl>http://proffmagasinet.com/</projectUrl>
+  <iconUrl>Modules/$(VirtoCommerce.Core)/Content/logoVC.png</iconUrl>
+  <releaseNotes>First version.</releaseNotes>
+  <copyright>Copyright © 2011-2016 Virto Commerce. All rights reserved</copyright>
+  <tags>Ingeniux Clontech</tags>
+
+  <assemblyFile>Ingeniux.ClontechExtension.Module.dll</assemblyFile>
+  <moduleType>Ingeniux.ClontechExtension.Module.Module, Ingeniux.ClontechExtension.Module</moduleType>
+  <styles>
+    <directory virtualPath="$/Content/css" searchPattern="*.css" searchSubdirectories="true" />
+  </styles>
+  <scripts>
+    <directory virtualPath="$/Scripts" searchPattern="*.js" searchSubdirectories="true" />
+  </scripts>
+
+    <settings>
+        <group name="Commerce|General">
+        </group>
+    </settings>
+    
+  <permissions>
+    <group name="Catalog">
+      <permission id="brand:update" name="Update brand" description=""/>
+    </group>
+  </permissions>
+</module>
