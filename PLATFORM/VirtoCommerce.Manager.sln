@@ -179,6 +179,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Amazon.MerchantModule.Web",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiBs", "Modules\PaymentGateways\DiBs\DiBs.csproj", "{0933D572-27E9-454A-A530-52A50C089C0D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Integrations", "Integrations", "{5B16F788-0FAD-4346-83C2-D7D3EEE6683F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ingeniux.OracleSoa.Api", "Integrations\Ingeniux.OracleSoa.Api\Ingeniux.OracleSoa.Api.csproj", "{58C0E32C-CC91-4312-9385-70AC6A8935DD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ingeniux.OracleSoa.Test", "Integrations\Ingeniux.OracleSoa.Test\Ingeniux.OracleSoa.Test.csproj", "{D626AE87-B19B-41D7-A9FC-3CE7A0F94EBF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -421,6 +427,14 @@ Global
 		{0933D572-27E9-454A-A530-52A50C089C0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0933D572-27E9-454A-A530-52A50C089C0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0933D572-27E9-454A-A530-52A50C089C0D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{58C0E32C-CC91-4312-9385-70AC6A8935DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58C0E32C-CC91-4312-9385-70AC6A8935DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58C0E32C-CC91-4312-9385-70AC6A8935DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58C0E32C-CC91-4312-9385-70AC6A8935DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D626AE87-B19B-41D7-A9FC-3CE7A0F94EBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D626AE87-B19B-41D7-A9FC-3CE7A0F94EBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D626AE87-B19B-41D7-A9FC-3CE7A0F94EBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D626AE87-B19B-41D7-A9FC-3CE7A0F94EBF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -506,5 +520,7 @@ Global
 		{C91DB74E-9907-4467-9AF0-25E7539A47FD} = {4E79CE95-D200-41C9-B191-324B741494BE}
 		{6573AFB8-742B-426D-B656-7505333FB444} = {7202A695-A43F-47D2-BFB9-8F1FCD9E1262}
 		{0933D572-27E9-454A-A530-52A50C089C0D} = {4E79CE95-D200-41C9-B191-324B741494BE}
+		{58C0E32C-CC91-4312-9385-70AC6A8935DD} = {5B16F788-0FAD-4346-83C2-D7D3EEE6683F}
+		{D626AE87-B19B-41D7-A9FC-3CE7A0F94EBF} = {5B16F788-0FAD-4346-83C2-D7D3EEE6683F}
 	EndGlobalSection
 EndGlobal
