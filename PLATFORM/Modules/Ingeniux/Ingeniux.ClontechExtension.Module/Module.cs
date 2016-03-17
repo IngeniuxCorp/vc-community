@@ -7,6 +7,7 @@ using VirtoCommerce.Domain.Order.Events;
 using VirtoCommerce.Domain.Payment.Services;
 using VirtoCommerce.Platform.Core.ExportImport;
 using VirtoCommerce.Platform.Core.Modularity;
+using VirtoCommerce.Platform.Core.Settings;
 
 namespace Ingeniux.ClontechExtension.Module
 {
@@ -29,11 +30,9 @@ namespace Ingeniux.ClontechExtension.Module
 
         public override void Initialize()
         {
-            var paymentService = new PaymentMethodsServiceImpl();
-            _container.RegisterInstance<IPaymentMethodsService>(paymentService);
-        }
+		}
 
-        public override void PostInitialize()
+		public override void PostInitialize()
         {
             base.PostInitialize();
 
@@ -60,13 +59,15 @@ namespace Ingeniux.ClontechExtension.Module
 
         private Func<PurchaseOrderPaymentMethod> GetInvoicePaymentMethodFunc()
         {
-            Func<PurchaseOrderPaymentMethod> retVal = () => new PurchaseOrderPaymentMethod("PurchaseOrder")
+			var settings = _container.Resolve<ISettingsManager>().GetModuleSettings("VirtoCommerce.PurchaseOrder");
+
+			Func<PurchaseOrderPaymentMethod> retVal = () => new PurchaseOrderPaymentMethod("PurchaseOrder")
             {
                 Name = "Purchase Order payment gateway",
                 Description = "Purchase Order payment gateway integration",
                 LogoUrl = "http://icons.iconarchive.com/icons/visualpharm/finance/128/invoice-icon.png",
-                //Settings = GetSettingsForPaymentMethod("PurchaseOrder", "Organization"),
-                IsActive = true
+                Settings = settings,
+                IsActive = false
             };
 
             return retVal;

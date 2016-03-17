@@ -7,8 +7,8 @@
     <dependency id="VirtoCommerce.Core" version="2.5.0" />
   </dependencies>
 
-  <title>Ingeniux.ClontechExtension extension module</title>
-  <description>Ingeniux.ClontechExtension extensions</description>
+  <title>Ingeniux.OracleSoa extension module</title>
+  <description>Ingeniux.OracleSoa extensions</description>
   <authors>
     <author>Ingeniux</author>
   </authors>
@@ -21,23 +21,12 @@
   <copyright>Copyright © 2011-2016 Virto Commerce. All rights reserved</copyright>
   <tags>Ingeniux Clontech</tags>
 
-  <assemblyFile>Ingeniux.ClontechExtension.Module.dll</assemblyFile>
-  <moduleType>Ingeniux.ClontechExtension.Module.Module, Ingeniux.ClontechExtension.Module</moduleType>
+  <assemblyFile>Ingeniux.OracleSoa.dll</assemblyFile>
+  <moduleType>Ingeniux.OracleSoa.Module, Ingeniux.OracleSoa</moduleType>
   <styles>
     <directory virtualPath="$/Content/css" searchPattern="*.css" searchSubdirectories="true" />
   </styles>
   <scripts>
     <directory virtualPath="$/Scripts" searchPattern="*.js" searchSubdirectories="true" />
   </scripts>
-
-    <settings>
-        <group name="Commerce|General">
-        </group>
-    </settings>
-    
-  <permissions>
-    <group name="Catalog">
-      <permission id="brand:update" name="Update brand" description=""/>
-    </group>
-  </permissions>
 </module>
