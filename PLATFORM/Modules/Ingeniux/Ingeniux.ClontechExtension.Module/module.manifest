@@ -30,11 +30,6 @@
     <directory virtualPath="$/Scripts" searchPattern="*.js" searchSubdirectories="true" />
   </scripts>
 
-    <settings>
-        <group name="Commerce|General">
-        </group>
-    </settings>
-    
   <permissions>
     <group name="Catalog">
       <permission id="brand:update" name="Update brand" description=""/>

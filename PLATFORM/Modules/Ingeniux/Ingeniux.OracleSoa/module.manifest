@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <module>
-  <id>Ingeniux.ClontechExtension.Module</id>
+  <id>Ingeniux.OracleSoa.Module</id>
   <version>1.0.0</version>
   <platformVersion>2.5.0</platformVersion>
   <dependencies>
@@ -23,10 +23,4 @@
 
   <assemblyFile>Ingeniux.OracleSoa.dll</assemblyFile>
   <moduleType>Ingeniux.OracleSoa.Module, Ingeniux.OracleSoa</moduleType>
-  <styles>
-    <directory virtualPath="$/Content/css" searchPattern="*.css" searchSubdirectories="true" />
-  </styles>
-  <scripts>
-    <directory virtualPath="$/Scripts" searchPattern="*.js" searchSubdirectories="true" />
-  </scripts>
 </module>
