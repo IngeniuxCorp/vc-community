@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Ingeniux.OracleSoa.Api.Services
+namespace Ingeniux.OracleSoa.Services
 {
     public interface IUserService
     {
@@ -15,13 +15,13 @@ namespace Ingeniux.OracleSoa.Api.Services
 		/// <param name="login"></param>
 		/// <param name="password"></param>
 		/// <returns></returns>
-		Task<bool> VerifyUserAsync(string login, string password);
+		bool VerifyUser(string login, string password);
 
 		/// <summary>
 		/// Provides ability to search user
 		/// </summary>
 		/// <param name="request"></param>
 		/// <returns></returns>
-		Task<UserServiceSearchResponse> SearchAsync(UserServiceSearchRequest request);
+		UserServiceSearchResponse Search(UserServiceSearchRequest request);
     }
 }

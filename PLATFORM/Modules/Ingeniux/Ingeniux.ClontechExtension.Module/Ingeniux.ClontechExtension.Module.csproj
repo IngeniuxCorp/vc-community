@@ -156,6 +156,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Converters\VcfIngeniuxOrderConverter.cs" />
     <Compile Include="Module.cs" />
     <Compile Include="Observers\ExtendedOrderNotificationObserver.cs" />
     <Compile Include="PaymentGateways\PurchaseOrderPaymentMethod.cs" />
@@ -215,13 +216,16 @@
       <Project>{223f3538-a20a-47c0-87a5-aea187513203}</Project>
       <Name>VirtoCommerce.SearchModule.Web</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Ingeniux.OracleSoa\Ingeniux.OracleSoa.csproj">
+      <Project>{822372f5-52e5-4785-b5de-363f0cb86c0c}</Project>
+      <Name>Ingeniux.OracleSoa</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="BackgroundJobs\" />
     <Folder Include="Binders\" />
     <Folder Include="Content\css\" />
     <Folder Include="Controllers\Api\" />
-    <Folder Include="Converters\" />
     <Folder Include="ExportImport\" />
     <Folder Include="Extensions\" />
     <Folder Include="IndexBuilders\" />

@@ -5,6 +5,7 @@
   <platformVersion>2.5.0</platformVersion>
   <dependencies>
     <dependency id="VirtoCommerce.Core" version="2.5.0" />
+    <dependency id="Ingeniux.OracleSoa" version="1.0.0" />
   </dependencies>
 
   <title>Ingeniux.ClontechExtension extension module</title>
@@ -30,9 +31,4 @@
     <directory virtualPath="$/Scripts" searchPattern="*.js" searchSubdirectories="true" />
   </scripts>
 
-  <permissions>
-    <group name="Catalog">
-      <permission id="brand:update" name="Update brand" description=""/>
-    </group>
-  </permissions>
 </module>

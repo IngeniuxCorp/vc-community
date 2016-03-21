@@ -7,8 +7,13 @@ using Ingeniux.OracleSoa.Api.Models;
 
 namespace Ingeniux.OracleSoa.Services
 {
-	public class OracleSoaUserService : IUserService
+	public class MockUserService : IUserService
 	{
+		public MockUserService()
+		{
+
+		}
+
 		public UserServiceSearchResponse Search(UserServiceSearchRequest request)
 		{
 			throw new NotImplementedException();
@@ -21,7 +26,12 @@ namespace Ingeniux.OracleSoa.Services
 			if (password == null)
 				throw new ArgumentNullException("password");
 
-			throw new NotImplementedException();
+			if (string.Equals(login, "success@demo.com"))
+			{
+				return true;
+			}
+
+			return false;
 		}
 	}
 }

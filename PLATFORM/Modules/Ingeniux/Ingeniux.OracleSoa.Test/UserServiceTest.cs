@@ -1,6 +1,6 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Ingeniux.OracleSoa.Api.Services;
+using Ingeniux.OracleSoa.Services;
 
 namespace Ingeniux.OracleSoa.Test
 {
@@ -17,10 +17,9 @@ namespace Ingeniux.OracleSoa.Test
 
 		[TestMethod]
 		[ExpectedException(typeof(NotImplementedException))]
-		public void SearchAsyncNotImplemented()
+		public void SearchNotImplemented()
 		{
-			var searchTask = _userService.SearchAsync(null);
-			searchTask.Wait();
+			var response = _userService.Search(null);
 		}
 
 
@@ -28,8 +27,7 @@ namespace Ingeniux.OracleSoa.Test
 		[ExpectedException(typeof(NotImplementedException))]
 		public void VerifyUserNotImplemented()
 		{
-			var searchTask = _userService.VerifyUserAsync(null, null);
-			searchTask.Wait();
+			var response = _userService.VerifyUser(null, null);
 		}
 
 	}
