@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.Storefront", "VirtoCommerce.Storefront\VirtoCommerce.Storefront.csproj", "{89054B36-0E64-4101-8260-333E6286B94F}"
 EndProject
@@ -12,6 +12,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.Client", "..\SDK\DotNet\VirtoCommerce.Client\VirtoCommerce.Client.csproj", "{45610268-8E12-4390-A216-19A78CDD2FBB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtoCommerce.Storefront.Test", "VirtoCommerce.Storefront.Test\VirtoCommerce.Storefront.Test.csproj", "{324FEE60-ACD1-427A-9B7D-0DF767E6F96D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ingeniux.Integration.Storefront.Test", "Ingeniux.Integration.Storefront.Test\Ingeniux.Integration.Storefront.Test.csproj", "{003718BF-46E4-4110-A96B-4F3397B7A6C4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{324FEE60-ACD1-427A-9B7D-0DF767E6F96D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{324FEE60-ACD1-427A-9B7D-0DF767E6F96D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{324FEE60-ACD1-427A-9B7D-0DF767E6F96D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{003718BF-46E4-4110-A96B-4F3397B7A6C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{003718BF-46E4-4110-A96B-4F3397B7A6C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{003718BF-46E4-4110-A96B-4F3397B7A6C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{003718BF-46E4-4110-A96B-4F3397B7A6C4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

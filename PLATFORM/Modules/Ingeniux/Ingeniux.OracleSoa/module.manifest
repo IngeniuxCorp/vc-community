@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <module>
-  <id>Ingeniux.OracleSoa.Module</id>
+  <id>Ingeniux.OracleSoa</id>
   <version>1.0.0</version>
   <platformVersion>2.5.0</platformVersion>
   <dependencies>
