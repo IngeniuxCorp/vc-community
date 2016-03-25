@@ -56,7 +56,9 @@
   <ItemGroup>
     <Compile Include="StorefrontTestBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="OrderRequestTest.cs" />
+    <Compile Include="OrderModuleCreateOrderTest.cs" />
+    <Compile Include="CartModuleGetPaymentMethodsTest.cs" />
+    <Compile Include="CommerceCoreStorefrontSecurityTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -8,31 +8,17 @@ using VirtoCommerce.Client.Model;
 namespace Ingeniux.Integration.Storefront.Test
 {
 	[TestClass]
-	public class OrderRequestTest : StorefrontTestBase
+	public class OrderModuleCreateOrderTest : StorefrontTestBase
 	{
-		[TestMethod]
-		public void GetPaymentMethodsForStoreTest()
-		{
-			var stores = StoreApi.StoreModuleGetStores();
-			Assert.IsTrue(stores.Any());
-
-			var store = stores.FirstOrDefault();
-			if (store != null)
-			{
-				var paymentMethods = ShoppingCartApi.CartModuleGetPaymentMethodsForStore(store.Id);
-				Assert.IsTrue(paymentMethods.Any());
-
-				var storePaymentMethods = store.PaymentMethods.Where(x => x.IsActive == true).ToList();
-				Assert.IsTrue(storePaymentMethods.Any());
-			}
-		}
-
 		[TestMethod]
 		public void CreateOrderTest()
 		{
-			var testOrder = GetTestOrder("order");
+			var testOrder = GetTestOrder(Guid.NewGuid().ToString("N"));
 			var order = OrderApi.OrderModuleCreateOrder(testOrder);
 			Assert.IsTrue(order != null);
+
+			//Set Processing status in ExtendedOrderNotificationObserver 
+			Assert.IsTrue(order.Status == "Processing");
 		}
 
 		private VirtoCommerceOrderModuleWebModelCustomerOrder GetTestOrder(string id)
@@ -40,24 +26,24 @@ namespace Ingeniux.Integration.Storefront.Test
 			var order = new VirtoCommerceOrderModuleWebModelCustomerOrder
 			{
 				Id = id,
+				Status = "New",
 				Currency = "USD",
 				CustomerId = "vasja customer",
 				EmployeeId = "employe",
-				StoreId = "test store",
-				Addresses = new []
-				{
+				StoreId = StoreId,
+				Addresses = new [] {
 					new VirtoCommerceOrderModuleWebModelAddress {
-					AddressType = "2", //Shipping 
-					City = "london",
-					Phone = "+68787687",
-					PostalCode = "22222",
-					CountryCode = "ENG",
-					CountryName = "England",
-					Email = "user@mail.com",
-					FirstName = "first name",
-					LastName = "last name",
-					Line1 = "line 1",
-					Organization = "org1"
+						AddressType = "Shipping", 
+						City = "london",
+						Phone = "+68787687",
+						PostalCode = "22222",
+						CountryCode = "ENG",
+						CountryName = "England",
+						Email = "user@mail.com",
+						FirstName = "first name",
+						LastName = "last name",
+						Line1 = "line 1",
+						Organization = "org1"
 					}
 				}.ToList(),
 				Discount = new VirtoCommerceOrderModuleWebModelDiscount

@@ -8,19 +8,21 @@ namespace Ingeniux.Integration.Storefront.Test
 {
 	public class StorefrontTestBase
 	{
-		public CatalogModuleApi CatalogApi;
-		public CMSContentModuleApi CmsContentApi;
-		public CommerceCoreModuleApi CommerceApi;
-		public CustomerManagementModuleApi CustomerManagementApi;
-		public InventoryModuleApi InventoryApi;
-		public MarketingModuleApi MarketingApi;
-		public OrderModuleApi OrderApi;
-		public PricingModuleApi PricingApi;
-		public QuoteModuleApi QuoteApi;
-		public SearchModuleApi SearchApi;
-		public ShoppingCartModuleApi ShoppingCartApi;
-		public StoreModuleApi StoreApi;
-		public VirtoCommercePlatformApi VirtoCommercePlatformApi;
+		protected readonly ICatalogModuleApi CatalogApi;
+		protected readonly ICMSContentModuleApi CmsContentApi;
+		protected readonly ICommerceCoreModuleApi CommerceCoreApi;
+		protected readonly ICustomerManagementModuleApi CustomerManagementApi;
+		protected readonly IInventoryModuleApi InventoryApi;
+		protected readonly IMarketingModuleApi MarketingApi;
+		protected readonly IOrderModuleApi OrderApi;
+		protected readonly IPricingModuleApi PricingApi;
+		protected readonly IQuoteModuleApi QuoteApi;
+		protected readonly ISearchModuleApi SearchApi;
+		protected readonly IShoppingCartModuleApi ShoppingCartApi;
+		protected readonly IStoreModuleApi StoreApi;
+		protected readonly IVirtoCommercePlatformApi VirtoCommercePlatformApi;
+
+		protected string StoreId;
 
 		public StorefrontTestBase()
 		{
@@ -28,7 +30,7 @@ namespace Ingeniux.Integration.Storefront.Test
 
 			CatalogApi = new CatalogModuleApi(apiClientCfg);
 			CmsContentApi = new CMSContentModuleApi(apiClientCfg);
-			CommerceApi = new CommerceCoreModuleApi(apiClientCfg);
+			CommerceCoreApi = new CommerceCoreModuleApi(apiClientCfg);
 			CustomerManagementApi = new CustomerManagementModuleApi(apiClientCfg);
 			InventoryApi = new InventoryModuleApi(apiClientCfg);
 			MarketingApi = new MarketingModuleApi(apiClientCfg);
@@ -39,6 +41,8 @@ namespace Ingeniux.Integration.Storefront.Test
 			ShoppingCartApi = new ShoppingCartModuleApi(apiClientCfg);
 			StoreApi = new StoreModuleApi(apiClientCfg);
 			VirtoCommercePlatformApi = new VirtoCommercePlatformApi(apiClientCfg);
+
+			StoreId = ConfigurationManager.AppSettings["StoreId"];
 		}
 
 		protected ApiClient GetApiClient()

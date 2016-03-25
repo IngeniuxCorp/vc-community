@@ -47,6 +47,8 @@ namespace Ingeniux.ClontechExtension.Module.Observers
 				// TODO: Call IOrderService.CreateOrderAsyn
 				//_orderService.CreateOrder()
 
+				value.ModifiedOrder.Status = "Processing";
+
 				Trace.TraceInformation("TODO: Call IOrderService.CreateOrderAsync");
 			}
 			else if (IsOrderPaid(value))
