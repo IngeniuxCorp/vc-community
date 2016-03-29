@@ -22,9 +22,9 @@ namespace Ingeniux.Integration.Storefront.Test
 		{
 			var user = new VirtoCommercePlatformCoreSecurityApplicationUserExtended
 			{
-				Email = "test@user.com",
+				Email = "test@site.com",
 				Password = "store",
-				UserName = "test@user.com",
+				UserName = "test@site.com",
 				UserType = "Customer",
 				StoreId = StoreId,
 			};
@@ -39,7 +39,7 @@ namespace Ingeniux.Integration.Storefront.Test
 			}
 			else
 			{
-				Assert.IsTrue(result.Errors[0] == @"Name test@user.com is already taken.");
+				Assert.IsTrue(result.Errors[0] == @"Name test@site.com is already taken.");
 			}
 		}
 	}
