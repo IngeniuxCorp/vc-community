@@ -15,15 +15,16 @@ namespace Ingeniux.Integration.Storefront.Test
 		private readonly string _searchCriteriaResponseGroup = "Full";
 
 		[TestMethod]
-		public void TestMethod1()
+		public void SearchTest()
 		{
 			var tagsTestCollection = new Dictionary<string, double>
 			{
-				{ "ANONYMOUS", 100 },
+				{ "ANONYMOUS", 100 }, //tag isn't defined
 				{ "REGISTERED", 99 },
 				{ "USA", 98 },
 				{ "DEU", 97 },
 				{ "ITA", 96 },
+				{ "demo@site.com", 95 },
 			};
 
 			foreach (var pairTagValue in tagsTestCollection)
@@ -31,7 +32,8 @@ namespace Ingeniux.Integration.Storefront.Test
 				var tag = pairTagValue.Key;
 				var successValue = pairTagValue.Value;
 
-				var priceLists = GetPriceListsByTags(new List<string> { tag });
+				var tags = tag == "ANONYMOUS" ? null : new List<string> {tag};
+                var priceLists = GetPriceListsByTags(tags);
 				Assert.IsTrue(priceLists.Any());
 
 				var searchResult = CatalogSearchByPricelistIds(priceLists.Select(x => x.Id).ToList());
@@ -42,6 +44,8 @@ namespace Ingeniux.Integration.Storefront.Test
 				Assert.IsTrue(evaluatePrices.Any() && evaluatePrices[0].List == successValue);
 			}
 		}
+
+
 
 		private List<VirtoCommercePricingModuleWebModelPricelist> GetPriceListsByTags(List<string> tags)
 		{

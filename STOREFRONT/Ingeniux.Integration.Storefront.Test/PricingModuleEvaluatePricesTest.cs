@@ -48,7 +48,7 @@ namespace Ingeniux.Integration.Storefront.Test
 				//registered with certain location
 				evalContext.Tags = new List<string> { "REGISTERED", "USA" };
 				evaluatePrice = PricingApi.PricingModuleEvaluatePrices(evalContext);
-				Assert.IsTrue(evaluatePrice.Count == 2 && evaluatePrice.First().List == 98);
+				Assert.IsTrue(evaluatePrice.Count >= 2 && evaluatePrice.First().List == 98);
 
 				evalContext.Tags = new List<string> { "DEU", "REGISTERED" };
 				evaluatePrice = PricingApi.PricingModuleEvaluatePrices(evalContext);
