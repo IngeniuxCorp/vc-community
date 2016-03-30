@@ -61,6 +61,7 @@
     <Compile Include="CartModuleGetPaymentMethodsTest.cs" />
     <Compile Include="CommerceCoreStorefrontSecurityTest.cs" />
     <Compile Include="PricingModuleEvaluatePricesTest.cs" />
+    <Compile Include="CatalogModuleProductsTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
