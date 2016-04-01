@@ -39,7 +39,7 @@ namespace Ingeniux.Integration.Storefront.Test
 				var searchResult = CatalogSearchByPricelistIds(priceLists.Select(x => x.Id).ToList());
 				Assert.IsTrue(searchResult.ProductsTotalCount > 0);
 
-				var product = searchResult.Products.First();
+				var product = searchResult.Products.First(x => x.Id == "770f6c850c9143a7a95342c7ff7aa9d5");
                 var evaluatePrices = GetEvaluatePrices(new List<string> {product.Id}, priceLists.Select(x => x.Id).ToList());
 				Assert.IsTrue(evaluatePrices.Any() && evaluatePrices[0].List == successValue);
 			}

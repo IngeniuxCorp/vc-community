@@ -23,7 +23,7 @@ namespace Ingeniux.Integration.Storefront.Test
 			var searchResult = CatalogSearchAllProducts();
 			Assert.IsTrue(searchResult.ProductsTotalCount > 0);
 
-			var product = searchResult.Products.FirstOrDefault();
+			var product = searchResult.Products.FirstOrDefault(x => x.Id == "770f6c850c9143a7a95342c7ff7aa9d5");
 			if (product != null)
 			{
 				//Evaluate products prices
