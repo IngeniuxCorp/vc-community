@@ -34,7 +34,8 @@ storefrontApp.controller('productController', ['$rootScope', '$scope', '$window'
             listPrice: product.price.listPrice,
             name: product.name,
             placedPrice: product.price.actualPrice,
-            quantity: quantity
+            quantity: quantity,
+            updated: false
         }
     }
 
@@ -52,7 +53,6 @@ storefrontApp.controller('productController', ['$rootScope', '$scope', '$window'
                 $scope.checkProperty(propertyMap[x][0])
             });
             $scope.selectedVariation = product;
-          
         });
     };
 

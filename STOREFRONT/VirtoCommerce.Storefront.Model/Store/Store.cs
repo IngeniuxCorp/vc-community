@@ -8,7 +8,7 @@ namespace VirtoCommerce.Storefront.Model
     /// <summary>
     /// Represent store - main ecommerce aggregate unit
     /// </summary>
-    public class Store : Entity
+    public class Store : Entity, IHasSettings
     {
         public Store()
         {
@@ -16,7 +16,7 @@ namespace VirtoCommerce.Storefront.Model
             Currencies = new List<Currency>();
             SeoInfos = new List<SeoInfo>();
             DynamicProperties = new List<DynamicProperty>();
-
+            Settings = new List<SettingEntry>();
         }
 
         public string Name { get; set; }
@@ -103,14 +103,15 @@ namespace VirtoCommerce.Storefront.Model
         {
             get
             {
-                bool isEnabled = false;
-
-                var dynamicPropertyValue = DynamicProperties.GetDynamicPropertyValue("EnableQuotes");
-                bool.TryParse(dynamicPropertyValue, out isEnabled);
-
-                return isEnabled;
+                return Settings.GetSettingValue("Quotes.EnableQuotes", false);
             }
         }
+
+        #region IhasSettings Member
+        public ICollection<SettingEntry> Settings { get; set; }
+        #endregion
+
+        public SeoLinksType SeoLinksType { get; set; }
 
         //Need sync store currencies with system avail currencies for specific language
         public void SyncCurrencies(IEnumerable<Currency> availableCurrencies, Language language)

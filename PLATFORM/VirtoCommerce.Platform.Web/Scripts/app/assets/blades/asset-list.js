@@ -1,15 +1,6 @@
 ﻿angular.module('platformWebApp')
-.controller('platformWebApp.assets.assetListController', ['$scope', 'platformWebApp.assets.api', 'platformWebApp.bladeNavigationService', 'platformWebApp.dialogService', '$sessionStorage', 'uiGridConstants', 'platformWebApp.uiGridHelper',
-    function ($scope, assets, bladeNavigationService, dialogService, $storage, uiGridConstants, uiGridHelper) {
-        var preventFolderListingOnce; // prevent from unwanted additional actions after command was activated from context menu
-
-        //pagination settings
-        $scope.pageSettings = {};
-        $scope.pageSettings.totalItems = 0;
-        $scope.pageSettings.currentPage = 1;
-        $scope.pageSettings.numPages = 5;
-        $scope.pageSettings.itemsPerPageCount = 20;
-
+.controller('platformWebApp.assets.assetListController', ['$scope', 'platformWebApp.assets.api', 'platformWebApp.bladeNavigationService', 'platformWebApp.dialogService', '$sessionStorage', 'platformWebApp.bladeUtils', 'platformWebApp.uiGridHelper',
+    function ($scope, assets, bladeNavigationService, dialogService, $storage, bladeUtils, uiGridHelper) {
         var blade = $scope.blade;
         blade.title = 'platform.blades.asset-list.title';
         if (!blade.currentEntity) {
@@ -49,7 +40,7 @@
                 }
                 blade.breadcrumbs = breadcrumbs;
             } else {
-                blade.breadcrumbs = [generateBreadcrumb(null, 'all')];
+                blade.breadcrumbs = [generateBreadcrumb(blade.currentEntity.url, 'all')];
             }
         }
 
@@ -61,7 +52,7 @@
                 navigate: function (breadcrumb) {
                     breadcrumb.blade.searchKeyword = null;
                     breadcrumb.blade.disableOpenAnimation = true;
-                    bladeNavigationService.showBlade(breadcrumb.blade);
+                    bladeNavigationService.showBlade(breadcrumb.blade, breadcrumb.blade.parentBlade);
                     // breadcrumb.blade.refresh();
                 }
             }
@@ -88,9 +79,6 @@
 
         $scope.copyUrl = function (data) {
             window.prompt("Copy to clipboard: Ctrl+C, Enter", data.url);
-            if (data.type === 'folder') {
-                preventFolderListingOnce = true;
-            }
         };
 
         $scope.downloadUrl = function (data) {
@@ -98,9 +86,6 @@
         };
 
         //$scope.rename = function (listItem) {
-        //    if (listItem.type === 'folder') {
-        //        preventFolderListingOnce = true;
-        //    }
         //    rename(listItem);
         //};
 
@@ -117,8 +102,6 @@
 
         $scope.delete = function (data) {
             deleteList([data]);
-
-            preventFolderListingOnce = true;
         };
 
         function deleteList(selection) {
@@ -142,21 +125,17 @@
 
         $scope.selectNode = function (listItem) {
             if (listItem.type === 'folder') {
-                if (preventFolderListingOnce) {
-                    preventFolderListingOnce = false;
-                } else {
-                    var newBlade = {
-                        id: blade.id,
-                        breadcrumbs: blade.breadcrumbs,
-                        currentEntity: listItem,
-                        disableOpenAnimation: true,
-                        controller: blade.controller,
-                        template: blade.template,
-                        isClosingDisabled: true
-                    };
+                var newBlade = {
+                    id: blade.id,
+                    breadcrumbs: blade.breadcrumbs,
+                    currentEntity: listItem,
+                    disableOpenAnimation: true,
+                    controller: blade.controller,
+                    template: blade.template,
+                    isClosingDisabled: blade.isClosingDisabled
+                };
 
-                    bladeNavigationService.showBlade(newBlade, blade.parentBlade);
-                }
+                bladeNavigationService.showBlade(newBlade, blade.parentBlade);
             }
         };
 
@@ -246,7 +225,7 @@
                 $scope.$watch('pageSettings.currentPage', gridApi.pagination.seek);
             });
         };
-
+        bladeUtils.initializePagination($scope, true);
 
         blade.refresh();
     }]);

@@ -1,6 +1,5 @@
-﻿using Omu.ValueInjecter;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
+using Omu.ValueInjecter;
 using VirtoCommerce.LiquidThemeEngine.Objects;
 using VirtoCommerce.Storefront.Model.Common;
 using StorefrontModel = VirtoCommerce.Storefront.Model;
@@ -10,16 +9,19 @@ namespace VirtoCommerce.LiquidThemeEngine.Converters
 {
     public static class ProductConverter
     {
-        public static Product ToShopifyModel(this StorefrontModel.Catalog.Product product, StorefrontModel.WorkContext workContext)
+        public static Product ToShopifyModel(this StorefrontModel.Catalog.Product product)
         {
             var result = new Product();
             result.InjectFrom<StorefrontModel.Common.NullableAndEnumValueInjecter>(product);
-            result.Variants.Add(product.ToVariant(workContext));
+
+            if (product.IsBuyable)
+            {
+                result.Variants.Add(product.ToVariant());
+            }
 
             if (product.Variations != null)
             {
-                result.Variants.AddRange(product.Variations.Select(x => x.ToVariant(workContext)));
-                
+                result.Variants.AddRange(product.Variations.Select(x => x.ToVariant()));
             }
 
             result.Available = true;// product.IsActive && product.IsBuyable;
@@ -27,13 +29,13 @@ namespace VirtoCommerce.LiquidThemeEngine.Converters
             result.CatalogId = product.CatalogId;
             result.CategoryId = product.CategoryId;
 
-            result.CompareAtPriceMax = result.Variants.Select(x=>x.CompareAtPrice).Max();
+            result.CompareAtPriceMax = result.Variants.Select(x => x.CompareAtPrice).Max();
             result.CompareAtPriceMin = result.Variants.Select(x => x.CompareAtPrice).Min();
             result.CompareAtPriceVaries = result.CompareAtPriceMax != result.CompareAtPriceMin;
 
             result.CompareAtPrice = product.Price.ListPrice.Amount * 100;
             result.Price = product.Price.SalePrice.Amount * 100;
-            if(product.Price.ActiveDiscount != null)
+            if (product.Price.ActiveDiscount != null)
             {
                 result.Price = result.Price - product.Price.ActiveDiscount.Amount.Amount * 100;
             }
@@ -43,8 +45,13 @@ namespace VirtoCommerce.LiquidThemeEngine.Converters
 
             result.Content = product.Description;
             result.Description = result.Content;
+            result.Descriptions = new Descriptions(product.Descriptions.Select(d => new Description
+            {
+                Content = d.Value,
+                Type = d.ReviewType
+            }));
             result.FeaturedImage = product.PrimaryImage != null ? product.PrimaryImage.ToShopifyModel() : null;
-            if(result.FeaturedImage != null)
+            if (result.FeaturedImage != null)
             {
                 result.FeaturedImage.ProductId = product.Id;
                 result.FeaturedImage.AttachedToVariant = false;
@@ -57,27 +64,33 @@ namespace VirtoCommerce.LiquidThemeEngine.Converters
                 image.ProductId = product.Id;
                 image.AttachedToVariant = false;
             }
-            if(product.VariationProperties != null)
+
+            if (product.VariationProperties != null)
             {
-                result.Options = product.VariationProperties.Select(x => x.Name).ToArray();
+                result.Options = product.VariationProperties.Where(x => !string.IsNullOrEmpty(x.Value)).Select(x => x.Name).ToArray();
             }
-            if(product.Properties != null)
+            if (product.Properties != null)
             {
                 result.Properties = product.Properties.Select(x => x.ToShopifyModel()).ToList();
+                result.Metafields = new MetaFieldNamespacesCollection(new[] { new MetafieldsCollection("properties", product.Properties) });
             }
             result.SelectedVariant = result.Variants.First();
             result.Title = product.Name;
             result.Type = product.ProductType;
-            result.Url = "~/product/" + product.Id;
-            if (product.SeoInfo != null)
+            result.Url = product.Url;
+
+            if (product.Associations.Any())
             {
-                result.Url = "~/" + product.SeoInfo.Slug;
+                result.RelatedProducts = product.Associations.Where(a => a.Product != null)
+                    .OrderBy(a => a.Priority)
+                    .Select(a => a.Product.ToShopifyModel()).ToList();
             }
-           
+
+        
             return result;
         }
 
-        public static Variant ToVariant(this StorefrontModel.Catalog.Product product, StorefrontModel.WorkContext workContext)
+        public static Variant ToVariant(this StorefrontModel.Catalog.Product product)
         {
             var result = new Variant();
             result.Available = true; //product.IsActive && product.IsBuyable;
@@ -96,7 +109,7 @@ namespace VirtoCommerce.LiquidThemeEngine.Converters
             result.Id = product.Id;
             result.InventoryPolicy = "continue";
             result.InventoryQuantity = product.Inventory != null ? product.Inventory.InStockQuantity ?? 0 : 0;
-            result.Options = product.VariationProperties.Select(p => p.Value).ToArray();
+            result.Options = product.VariationProperties.Where(p => !string.IsNullOrEmpty(p.Value)).Select(p => p.Value).ToArray();
             result.CompareAtPrice = product.Price.ListPrice.Amount * 100;
             result.Price = product.Price.SalePrice.Amount * 100;
             if (product.Price.ActiveDiscount != null)
@@ -107,12 +120,7 @@ namespace VirtoCommerce.LiquidThemeEngine.Converters
             result.Selected = false;
             result.Sku = product.Sku;
             result.Title = product.Name;
-
-            result.Url = "~/product/" + product.Id;
-            if (product.SeoInfo != null)
-            {
-                result.Url = "~/" + product.SeoInfo.Slug;
-            }
+            result.Url = product.Url;
             result.Weight = product.Weight;
             result.WeightUnit = product.WeightUnit;
             return result;

@@ -14,10 +14,10 @@ namespace VirtoCommerce.LiquidThemeEngine.Objects
     public class Collection : Drop
     {
         /// <summary>
-        /// Returns a list of all product types in a collection.
+        /// Returns collection total products count
         /// </summary>
         [DataMember]
-        public int AllProductsCount { get; set; }
+        public int AllProductsCount { get { return Products.GetTotalCount(); } }
 
         /// <summary>
         /// Returns all tags of all products in a collection.
@@ -105,13 +105,13 @@ namespace VirtoCommerce.LiquidThemeEngine.Objects
         /// <summary>
         /// Returns paged collection of products
         /// </summary>
-        public IStorefrontPagedList<Product> Products { get; set; }
+        public IMutablePagedList<Product> Products { get; set; }
 
         /// <summary>
         /// Returns collection total products count
         /// </summary>
         [DataMember]
-        public int ProductsCount { get; set; }
+        public int ProductsCount { get { return Products.GetTotalCount(); } }
 
         /// <summary>
         /// Returns all tags of all products in a collection.
@@ -136,5 +136,10 @@ namespace VirtoCommerce.LiquidThemeEngine.Objects
         /// </summary>
         [DataMember]
         public string Url { get; set; }
+
+        /// <summary>
+        /// Shop metafields
+        /// </summary>
+        public MetaFieldNamespacesCollection Metafields { get; set; }
     }
 }

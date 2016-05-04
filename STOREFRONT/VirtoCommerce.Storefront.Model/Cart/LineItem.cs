@@ -169,6 +169,7 @@ namespace VirtoCommerce.Storefront.Model.Cart
         /// </summary>
         public Money SalePrice { get; set; }
 
+
         /// <summary>
         /// Gets the value of line item actual price (include all types of discounts)
         /// </summary>
@@ -176,7 +177,7 @@ namespace VirtoCommerce.Storefront.Model.Cart
         {
             get
             {
-                return SalePrice - DiscountTotal;
+                return SalePrice - DynamicItemDiscount;
             }
         }
 
@@ -192,9 +193,21 @@ namespace VirtoCommerce.Storefront.Model.Cart
         }
 
         /// <summary>
-        /// Gets the value of line item total discount amount
+        /// Static discount amount for one line item unit 
         /// </summary>
-        public Money DiscountTotal
+        public Money StaticItemDiscount
+        {
+            get
+            {
+                return ListPrice - SalePrice;
+            }
+        }
+
+
+        /// <summary>
+        /// Gets the value of the single line item discount amount
+        /// </summary>
+        public Money DynamicItemDiscount
         {
             get
             {
@@ -204,6 +217,16 @@ namespace VirtoCommerce.Storefront.Model.Cart
             }
         }
 
+        /// <summary>
+        /// Gets the value of line item total discount amount
+        /// </summary>
+        public Money DiscountTotal
+        {
+            get
+            {
+                return (StaticItemDiscount + DynamicItemDiscount) * Quantity;
+            }
+        }
 
         /// <summary>
         /// Used for dynamic properties management, contains object type string
@@ -216,6 +239,11 @@ namespace VirtoCommerce.Storefront.Model.Cart
         /// </summary>
         /// <value>Dynamic properties collections</value>
         public ICollection<DynamicProperty> DynamicProperties { get; set; }
+
+        /// <summary>
+        /// Gets or sets the cart validation type
+        /// </summary>
+        public ValidationType ValidationType { get; set; }
 
         public ICollection<ValidationError> ValidationErrors { get; set; }
 
@@ -259,7 +287,8 @@ namespace VirtoCommerce.Storefront.Model.Cart
 
         public void ApplyRewards(IEnumerable<PromotionReward> rewards)
         {
-            var lineItemRewards = rewards.Where(r => r.RewardType == PromotionRewardType.CatalogItemAmountReward && r.ProductId == ProductId);
+            //TODO: quantity limit usage
+            var lineItemRewards = rewards.Where(r => r.RewardType == PromotionRewardType.CatalogItemAmountReward && (r.ProductId.IsNullOrEmpty() || r.ProductId.EqualsInvariant(ProductId)));
             if (lineItemRewards == null)
             {
                 return;
@@ -270,7 +299,12 @@ namespace VirtoCommerce.Storefront.Model.Cart
             foreach (var reward in lineItemRewards)
             {
                 var discount = reward.ToDiscountModel(SalePrice);
-
+                if(reward.Quantity > 0)
+                {
+                    var money = discount.Amount * Math.Min(reward.Quantity, Quantity);
+                    //TODO: need allocate more rightly between each quantities
+                    discount.Amount = money.Allocate(Quantity).FirstOrDefault();
+                }
                 if (reward.IsValid)
                 {
                     Discounts.Add(discount);

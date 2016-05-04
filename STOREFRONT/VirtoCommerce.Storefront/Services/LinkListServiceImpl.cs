@@ -33,7 +33,7 @@ namespace VirtoCommerce.Storefront.Services
             var linkLists = await _cmsApi.MenuGetListsAsync(storeId);
             if (linkLists != null)
             {
-                retVal.AddRange(linkLists.Select(x => x.ToWebModel(_urlBuilder)));
+                retVal.AddRange(linkLists.Select(x => x.ToWebModel()));
                 var allMenuLinks = retVal.SelectMany(x => x.MenuLinks);
                 var productLinks = allMenuLinks.OfType<ProductMenuLink>();
                 var categoryLinks = allMenuLinks.OfType<CategoryMenuLink>();
@@ -44,12 +44,12 @@ namespace VirtoCommerce.Storefront.Services
                 var productIds = productLinks.Select(x => x.AssociatedObjectId).ToArray();
                 if (productIds.Any())
                 {
-                    productsLoadingTask = _catalogSearchService.GetProductsAsync(productIds, ItemResponseGroup.ItemSmall);
+                    productsLoadingTask = _catalogSearchService.GetProductsAsync(productIds, ItemResponseGroup.ItemSmall | ItemResponseGroup.Seo);
                 }
                 var categoriesIds = categoryLinks.Select(x => x.AssociatedObjectId).ToArray();
                 if (categoriesIds.Any())
                 {
-                    categoriesLoadingTask = _catalogSearchService.GetCategoriesAsync(categoriesIds, CategoryResponseGroup.Info | CategoryResponseGroup.WithImages);
+                    categoriesLoadingTask = _catalogSearchService.GetCategoriesAsync(categoriesIds, CategoryResponseGroup.Info | CategoryResponseGroup.WithImages | CategoryResponseGroup.WithSeo);
                 }
                 //Populate link by associated product
                 if (productsLoadingTask != null)

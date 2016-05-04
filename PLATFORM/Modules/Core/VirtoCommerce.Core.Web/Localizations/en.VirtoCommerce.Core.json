@@ -92,6 +92,49 @@
       "fulfillment-center-list": {
         "title": "Fulfillment centers",
         "subtitle": "Manage Fulfillment centers"
+      },
+      "seo-list": {
+        "subtitle": "Manage SEOs",
+        "labels": {
+          "duplicates-found": "There are {{count}} conflicting Semantic URLs!",
+          "resolve-duplicates": "Resolve conflicts",
+          "language-code": "Language",
+          "container": "Store",
+          "semanticUrl": "Semantic URL"
+        }
+      },
+      "seo-detail": {
+        "title-new": "New SEO",
+        "subtitle": "SEO details",
+        "labels": {
+          "is-active": "Is active",
+          "store": "Store",
+          "language": "Language",
+          "url-keyword": "URL keyword",
+          "page-title": "Page title",
+          "meta-description": "Meta description",
+          "alternative-text": "Image alternative text"
+        },
+        "placeholders": {
+          "store": "Select Store",
+          "language": "Select Language",
+          "url-keyword": "Enter keyword",
+          "page-title": "Enter title",
+          "meta-description": "Enter description",
+          "alternative-text": "Enter text"
+        },
+        "validations": {
+          "url-keyword-required": "Required",
+          "url-keyword-invalid": "Invalid characters in URL found",
+          "url-keyword-duplicate": "Duplicate URL found"
+        }
+      },
+      "seo-duplicates": {
+        "subtitle": "SEO conflicts",
+        "labels": {
+          "semanticUrl": "Semantic URL",
+          "container": "Store"
+        }
       }
     },
     "dialogs": {
@@ -118,6 +161,10 @@
       "fulfillments-save": {
         "title": "Save changes",
         "message": "The fulfillments has been modified. Do you want to save changes?"
+      },
+      "seo-save": {
+        "title": "Save changes",
+        "message": "The SEO information has been modified. Do you want to save changes?"
       }
     },
     "widgets": {
@@ -130,6 +177,9 @@
       },
       "fulfillment": {
         "title": "Fulfillment centers"
+      },
+      "seo": {
+        "title": "SEO"
       }
     }
   }

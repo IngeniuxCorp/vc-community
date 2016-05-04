@@ -1,21 +1,21 @@
 ﻿angular.module('virtoCommerce.contentModule')
-.controller('virtoCommerce.contentModule.menuLinkListController', ['$scope', 'virtoCommerce.contentModule.menus', 'virtoCommerce.contentModule.stores', 'platformWebApp.bladeNavigationService', 'platformWebApp.dialogService', 'virtoCommerce.contentModule.menuLinkList-associationTypesService', function ($scope, menus, menusStores, bladeNavigationService, dialogService, associationTypesService) {
+.controller('virtoCommerce.contentModule.menuLinkListController', ['$rootScope', '$scope', 'virtoCommerce.contentModule.menus', 'virtoCommerce.storeModule.stores', 'platformWebApp.bladeNavigationService', 'platformWebApp.dialogService', 'virtoCommerce.contentModule.menuLinkList-associationTypesService', function ($rootScope, $scope, menus, menusStores, bladeNavigationService, dialogService, associationTypesService) {
     var blade = $scope.blade;
     blade.updatePermission = 'content:update';
     blade.selectedItemIds = [];
 
     blade.initialize = function () {
-        menusStores.get({ id: blade.choosenStoreId }, function (data) {
+        menusStores.get({ id: blade.chosenStoreId }, function (data) {
             blade.languages = data.languages;
             blade.defaultStoreLanguage = data.defaultLanguage;
 
             if (blade.newList) {
-                blade.currentEntity = { title: undefined, language: blade.defaultStoreLanguage, storeId: blade.choosenStoreId, menuLinks: [] };
-                blade.choosenListId = blade.currentEntity.id;
+                blade.currentEntity = { title: undefined, language: blade.defaultStoreLanguage, storeId: blade.chosenStoreId, menuLinks: [] };
+                blade.chosenListId = blade.currentEntity.id;
                 $scope.blade.toolbarCommands = [{
                     name: "content.commands.add-link", icon: 'fa fa-plus',
                     executeMethod: function () {
-                        var newEntity = { url: undefined, title: undefined, type: undefined, priority: 0, isActive: false, language: undefined, menuLinkListId: blade.choosenListId };
+                        var newEntity = { url: undefined, title: undefined, type: undefined, priority: 0, isActive: false, language: undefined, menuLinkListId: blade.chosenListId };
                         blade.currentEntity.menuLinks.push(newEntity);
                         blade.recalculatePriority();
                     },
@@ -35,7 +35,7 @@
             }
             else {
                 blade.isLoading = true;
-                menus.getList({ storeId: blade.choosenStoreId, listId: blade.choosenListId }, function (data) {
+                menus.getList({ storeId: blade.chosenStoreId, listId: blade.chosenListId }, function (data) {
                     _.each(data.menuLinks, function (x) {
                         if (x.associatedObjectType) {
                             x.associatedObject = _.findWhere($scope.associatedObjectTypes, { id: x.associatedObjectType });
@@ -49,7 +49,7 @@
                     $scope.blade.toolbarCommands = [{
                         name: "content.commands.add-link", icon: 'fa fa-plus',
                         executeMethod: function () {
-                            var newEntity = { url: undefined, title: undefined, isActive: false, priority: 0, menuLinkListId: blade.choosenListId };
+                            var newEntity = { url: undefined, title: undefined, isActive: false, priority: 0, menuLinkListId: blade.chosenListId };
                             blade.currentEntity.menuLinks.push(newEntity);
                             blade.recalculatePriority();
                         },
@@ -106,13 +106,14 @@
     blade.saveChanges = function () {
         //checkForNull();
         blade.isLoading = true;
-        menus.checkList({ storeId: blade.choosenStoreId, id: blade.currentEntity.id, name: blade.currentEntity.name, language: blade.currentEntity.language }, function (data) {
+        menus.checkList({ storeId: blade.chosenStoreId, id: blade.currentEntity.id, name: blade.currentEntity.name, language: blade.currentEntity.language }, function (data) {
             if (Boolean(data.result)) {
-                menus.update({ storeId: blade.choosenStoreId }, blade.currentEntity, function (data) {
+                menus.update({ storeId: blade.chosenStoreId }, blade.currentEntity, function (data) {
                     blade.parentBlade.initialize();
                     blade.newList = false;
                     blade.isLoading = false;
                     blade.origEntity = angular.copy(blade.currentEntity);
+                    $rootScope.$broadcast("cms-menus-changed", blade.chosenStoreId);
                 },
                 function (error) { bladeNavigationService.setError('Error ' + error.status, $scope.blade); });
             }
@@ -153,9 +154,10 @@
                 if (remove) {
                     blade.isLoading = true;
 
-                    menus.delete({ storeId: blade.choosenStoreId, listId: blade.choosenListId }, function () {
+                    menus.delete({ storeId: blade.chosenStoreId, listId: blade.chosenListId }, function () {
                         $scope.bladeClose();
                         blade.parentBlade.initialize();
+                        $rootScope.$broadcast("cms-menus-changed", blade.chosenStoreId);
                     },
                     function (error) { bladeNavigationService.setError('Error ' + error.status, $scope.blade); });
                 }
@@ -215,24 +217,16 @@
 
     blade.getFlag = function (lang) {
         switch (lang) {
-            case 'ru-RU':
-                return 'ru';
-
             case 'en-US':
                 return 'us';
-
             case 'fr-FR':
                 return 'fr';
-
             case 'zh-CN':
                 return 'ch';
-
             case 'ru-RU':
                 return 'ru';
-
             case 'ja-JP':
                 return 'jp';
-
             case 'de-DE':
                 return 'de';
         }

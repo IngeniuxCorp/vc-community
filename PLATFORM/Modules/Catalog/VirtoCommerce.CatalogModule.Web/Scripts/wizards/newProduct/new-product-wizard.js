@@ -1,10 +1,11 @@
 ﻿angular.module('virtoCommerce.catalogModule')
-.controller('virtoCommerce.catalogModule.newProductWizardController', ['$scope', 'platformWebApp.bladeNavigationService', function ($scope, bladeNavigationService) {
+.controller('virtoCommerce.catalogModule.newProductWizardController', ['$scope', 'platformWebApp.bladeNavigationService', '$http', 'virtoCommerce.storeModule.stores', function ($scope, bladeNavigationService, $http, stores) {
     var blade = $scope.blade;
     blade.headIcon = blade.item.productType === 'Digital' ? 'fa fa-file-archive-o' : 'fa fa-truck';
 
     var initialName = blade.item.name ? blade.item.name : '';
     var lastGeneratedName = initialName;
+    var storesPromise = stores.query().$promise;
 
     $scope.createItem = function () {
         blade.isLoading = true;
@@ -53,15 +54,22 @@
                 };
                 break;
             case 'seo':
-                newBlade = {
-                    id: "newProductSeoDetail",
-                    item: blade.item,
-                    title: blade.item.name,
-                    subtitle: 'catalog.blades.seo-detail.subtitle',
-                    isNew: true,
-                    controller: 'virtoCommerce.catalogModule.newProductSeoDetailController',
-                    template: 'Modules/$(VirtoCommerce.Catalog)/Scripts/blades/seo-detail.tpl.html'
-                };
+                initializeSEO(blade.item, function (seoInfo) {
+                    storesPromise.then(function (promiseData) {
+                        newBlade = {
+                            id: 'seoDetails',
+                            data: seoInfo,
+                            isNew: !_.any(blade.item.seoInfos),
+                            seoContainerObject: blade.item,
+                            stores: promiseData,
+                            languages: _.pluck(getCatalog().languages, 'languageCode'),
+                            updatePermission: 'catalog:create',
+                            controller: 'virtoCommerce.coreModule.seo.seoDetailController',
+                            template: 'Modules/$(VirtoCommerce.Core)/Scripts/SEO/blades/seo-detail.tpl.html'
+                        };
+                        bladeNavigationService.showBlade(newBlade, blade);
+                    });
+                });
                 break;
             case 'review':
                 if (blade.item.reviews != undefined && blade.item.reviews.length > 0) {
@@ -114,6 +122,29 @@
             parentBlade = parentBlade.parentBlade;
         }
         return parentBlade.catalog;
+    }
+
+    function initializeSEO(item, callback) {
+        if (_.any(item.seoInfos)) {
+            callback(item.seoInfos[0]);
+        } else {
+            var retVal = { isActive: true };
+            var stringForSlug = item.name;
+            _.each(item.properties, function (prop) {
+                _.each(prop.values, function (val) {
+                    stringForSlug += ' ' + val.value;
+                });
+            });
+
+            if (stringForSlug) {
+                $http.get('api/catalog/getslug?text=' + stringForSlug)
+                    .then(function (results) {
+                        retVal.semanticUrl = results.data;
+                        callback(retVal);
+                    });
+            } else
+                callback(retVal);
+        }
     }
 
     $scope.$watch('blade.item.properties', function (currentEntities) {

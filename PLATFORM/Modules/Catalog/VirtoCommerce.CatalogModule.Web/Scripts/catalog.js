@@ -141,10 +141,30 @@ angular.module(catalogsModuleName, [
 
 	    //Register item seo widget
 	    var itemSeoWidget = {
-	        controller: 'virtoCommerce.catalogModule.seoWidgetController',
-	        template: 'Modules/$(VirtoCommerce.Catalog)/Scripts/widgets/seoWidget.tpl.html'
+	        controller: 'virtoCommerce.coreModule.seo.seoWidgetController',
+	        template: 'Modules/$(VirtoCommerce.Core)/Scripts/SEO/widgets/seoWidget.tpl.html',
+	        objectType: 'CatalogProduct',
+	        getDefaultContainerId: function (blade) { return undefined; },
+	        getLanguages: function (blade) { return _.pluck(blade.item.catalog.languages, 'languageCode'); }
 	    };
 	    widgetService.registerWidget(itemSeoWidget, 'itemDetail');
+
+	    //seoObjectBladesResolver.registerBladeForSeoObjectType('catalogProduct', function (seoInfo) {
+	    //	return {
+	    //		id: "product-detail",
+	    //		itemId: seoInfo.objectId,
+	    //		controller: 'virtoCommerce.catalogModule.itemDetailController',
+	    //		template: 'Modules/$(VirtoCommerce.Catalog)/Scripts/blades/item-detail.tpl.html'
+	    //	};
+	    //});
+	    //seoObjectBladesResolver.registerBladeForSeoObjectType('category', function (seoInfo) {
+	    //	return {
+	    //		id: "listCategoryDetail",
+	    //		currentEntityId: seoInfo.objectId,
+	    //		controller: 'virtoCommerce.catalogModule.categoryDetailController',
+	    //		template: 'Modules/$(VirtoCommerce.Catalog)/Scripts/blades/category-detail.tpl.html',
+	    //	};
+	    //});
 
 	    //Register item editorialReview widget
 	    var editorialReviewWidget = {
@@ -179,8 +199,11 @@ angular.module(catalogsModuleName, [
 
 	    //Register category seo widget
 	    var categorySeoWidget = {
-	        controller: 'virtoCommerce.catalogModule.seoWidgetController',
-	        template: 'Modules/$(VirtoCommerce.Catalog)/Scripts/widgets/seoWidget.tpl.html'
+	        controller: 'virtoCommerce.coreModule.seo.seoWidgetController',
+	        template: 'Modules/$(VirtoCommerce.Core)/Scripts/SEO/widgets/seoWidget.tpl.html',
+	        objectType: 'Category',
+	        getDefaultContainerId: function (blade) { return undefined; },
+	        getLanguages: function (blade) { return _.pluck(blade.currentEntity.catalog.languages, 'languageCode'); }
 	    };
 	    widgetService.registerWidget(categorySeoWidget, 'categoryDetail');
 
@@ -261,7 +284,7 @@ angular.module(catalogsModuleName, [
 	            var scopeOriginal = this.scopeOriginal;
 	            var newBlade = {
 	                id: "CatalogItemsSelect",
-	                title: "catalog.blade.catalog-items-select.title",
+	                title: "catalog.blades.catalog-items-select.title",
 	                controller: 'virtoCommerce.catalogModule.catalogItemSelectController',
 	                template: 'Modules/$(VirtoCommerce.Catalog)/Scripts/blades/common/catalog-items-select.tpl.html',
 	                options: options,

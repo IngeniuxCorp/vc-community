@@ -10,11 +10,11 @@ using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.Domain.Store.Model
 {
-    public class Store : AuditableEntity, IHasDynamicProperties, ISeoSupport
+    public class Store : AuditableEntity, IHasDynamicProperties, IHaveSettings, ISeoSupport
     {
         public string Name { get; set; }
         public string Description { get; set; }
-    
+
         /// <summary>
         /// Store current state (Open, Closed, RestrictedAccess)
         /// </summary>
@@ -66,12 +66,17 @@ namespace VirtoCommerce.Domain.Store.Model
         public ICollection<ShippingMethod> ShippingMethods { get; set; }
 
         #region ISeoSupport Members
-        public ICollection<SeoInfo> SeoInfos { get; set; } 
+        public string SeoObjectType { get { return GetType().Name; } }
+        public ICollection<SeoInfo> SeoInfos { get; set; }
         #endregion
 
         #region IHasDynamicProperties Members
         public string ObjectType { get; set; }
         public ICollection<DynamicObjectProperty> DynamicProperties { get; set; }
+        #endregion
+
+        #region IHaveSettings Members
+        public ICollection<SettingEntry> Settings { get; set; }
         #endregion
     }
 }

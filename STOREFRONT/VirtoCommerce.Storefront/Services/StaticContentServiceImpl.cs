@@ -1,17 +1,13 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
 using CacheManager.Core;
-using MarkdownDeep;
-using PagedList;
+using MarkdownSharp;
 using VirtoCommerce.LiquidThemeEngine;
 using VirtoCommerce.LiquidThemeEngine.Converters;
-using VirtoCommerce.LiquidThemeEngine.Extensions;
 using VirtoCommerce.Storefront.Model;
 using VirtoCommerce.Storefront.Model.Common;
 using VirtoCommerce.Storefront.Model.Services;
@@ -29,128 +25,125 @@ namespace VirtoCommerce.Storefront.Services
         private static string[] _extensions = new[] { ".md", ".html" };
         private readonly Markdown _markdownRender;
         private readonly ILiquidThemeEngine _liquidEngine;
-        private readonly string _baseLocalPath;
-        private FileSystemWatcher _fileSystemWatcher;
-        private readonly ICacheManager<object> _cacheManager;
+        private readonly ILocalCacheManager _cacheManager;
         private readonly Func<WorkContext> _workContextFactory;
         private readonly Func<IStorefrontUrlBuilder> _urlBuilderFactory;
-        private readonly LinkHelper _linkHelper;
+        private readonly Func<string, ContentItem> _contentItemFactory;
+        private readonly IContentBlobProvider _contentBlobProvider;
 
         [CLSCompliant(false)]
-        public StaticContentServiceImpl(string baseLocalPath, Markdown markdownRender, ILiquidThemeEngine liquidEngine,
-                                        ICacheManager<object> cacheManager, Func<WorkContext> workContextFactory,
-                                        Func<IStorefrontUrlBuilder> urlBuilderFactory)
+        public StaticContentServiceImpl(Markdown markdownRender, ILiquidThemeEngine liquidEngine,
+                                        ILocalCacheManager cacheManager, Func<WorkContext> workContextFactory,
+                                        Func<IStorefrontUrlBuilder> urlBuilderFactory, Func<string, ContentItem> contentItemFactory,
+                                        IContentBlobProvider contentBlobProvider)
         {
-            _baseLocalPath = baseLocalPath;
             _markdownRender = markdownRender;
             _liquidEngine = liquidEngine;
-            _fileSystemWatcher = MonitorContentFileSystemChanges();
+            
             _cacheManager = cacheManager;
             _workContextFactory = workContextFactory;
             _urlBuilderFactory = urlBuilderFactory;
-            _linkHelper = new LinkHelper();
+            _contentItemFactory = contentItemFactory;
+            _contentBlobProvider = contentBlobProvider;
+
+            //Observe content changes to invalidate cache if changes occur
+            _contentBlobProvider.Changed += (sender, args) =>
+            {
+                _cacheManager.Clear();
+            };
+            _contentBlobProvider.Renamed += (sender, args) =>
+            {
+                _cacheManager.Clear();
+            };
         }
 
         #region IStaticContentService Members
-        /// <summary>
-        /// Search store static contents by path and for specified language
-        /// </summary>
-        /// <param name="url"></param>
-        /// <param name="store"></param>
-        /// <param name="language"></param>
-        /// <param name="contentItemFactory"></param>
-        /// <param name="pageIndex"></param>
-        /// <param name="pageSize"></param>
-        /// <returns></returns>
-        public IPagedList<ContentItem> LoadContentItemsByUrl(string url, Store store, Language language, Func<ContentItem> contentItemFactory, string[] excludingNames = null, int pageIndex = 1, int pageSize = 10, bool renderContent = true)
+
+        public IEnumerable<ContentItem> LoadStoreStaticContent(Store store)
         {
             var retVal = new List<ContentItem>();
-            var totalCount = 0;
-            url = Uri.UnescapeDataString(url);
-            //construct local path {base path}\{store}\{url}
-            var baseStorePath = _baseLocalPath + "\\" + store.Id + "\\";
-            var localSearchPath = baseStorePath + url.Replace('/', '\\');
-            var isDirectorySearch = Directory.Exists(localSearchPath);
+            var baseStoreContentPath = "/" + store.Id;
             var searchPattern = "*.*";
-            if (!isDirectorySearch)
-            {
-                searchPattern = Path.GetFileNameWithoutExtension(localSearchPath) + ".*";
-                //Get parent directory path
-                localSearchPath = Path.GetDirectoryName(localSearchPath);
-            }
 
-            if (Directory.Exists(localSearchPath))
+            if (_contentBlobProvider.PathExists(baseStoreContentPath))
             {
+                var config = _liquidEngine.GetSettings();
+
                 //Search files by requested search pattern
-                var files = Directory.GetFiles(localSearchPath, searchPattern, SearchOption.AllDirectories)
+                var contentBlobs = _contentBlobProvider.Search(baseStoreContentPath, searchPattern, true)
                                              .Where(x => _extensions.Any(y => x.EndsWith(y)))
-                                             .Select(x=>x.Replace("\\\\", "\\"));
-                //Because can be exist files with same name but for different languages
-                //need filter and leave only files for requested language in file extension or without it (default)
+                                             .Select(x => x.Replace("\\\\", "\\"));
+
                 //each content file  has a name pattern {name}.{language?}.{ext}
-                var localizedFiles = files.Select(x => new LocalizedFileInfo(x))
-                             .GroupBy(x => x.Name).Select(x => x.OrderByDescending(y => y.Language).FirstOrDefault(y => language.Equals(y.Language) || String.IsNullOrEmpty(y.Language)))
-                             .Where(x => x != null);
+                var localizedBlobs = contentBlobs.Select(x => new LocalizedBlobInfo(x));
 
-                if(excludingNames != null && excludingNames.Any())
+                foreach (var localizedBlob in localizedBlobs.OrderBy(x => x.Name))
                 {
-                    localizedFiles = localizedFiles.Where(x => !excludingNames.Contains(x.Name.ToLowerInvariant()));
-                }
+                    var blobRelativePath = "/" + localizedBlob.Path.TrimStart('/');
+                    var contentItem = _contentItemFactory(blobRelativePath);
+                    if (contentItem != null)
+                    {
+                        if (contentItem.Name == null)
+                        {
+                            contentItem.Name = localizedBlob.Name;
+                        }
+                        contentItem.Language = localizedBlob.Language;
+                        contentItem.FileName = Path.GetFileName(blobRelativePath);
+                        contentItem.StoragePath = "/" + blobRelativePath.Replace(baseStoreContentPath + "/", string.Empty).TrimStart('/');
 
-                totalCount = localizedFiles.Count();
-                foreach (var localizedFile in localizedFiles.OrderBy(x => x.Name).Skip((pageIndex - 1) * pageSize).Take(pageSize))
-                {
-                    var relativePath = localizedFile.LocalPath.Replace(baseStorePath, string.Empty);
-                    var contentItem = contentItemFactory();
-                    contentItem.Name = localizedFile.Name;
-                    contentItem.Language = language;
-                    contentItem.RelativePath = relativePath;
-                    contentItem.FileName = Path.GetFileName(relativePath);
-                    contentItem.LocalPath = localizedFile.LocalPath;
+                        LoadAndRenderContentItem(blobRelativePath, contentItem);
 
-                    LoadAndRenderContentItem(contentItem, renderContent);
-
-                    contentItem.Url = _linkHelper.EvaluatePermalink("none", contentItem); // TODO: replace with setting "permalink"
-
-
-                    retVal.Add(contentItem);
+                        retVal.Add(contentItem);
+                    }
                 }
             }
 
-            return new StaticPagedList<ContentItem>(retVal, pageIndex, pageSize, totalCount);
+            return retVal.ToArray();
         }
+
         #endregion
-         private void LoadAndRenderContentItem(ContentItem contentItem, bool renderContent)
+
+        private void LoadAndRenderContentItem(string contentPath, ContentItem contentItem)
         {
-            var fileInfo = new FileInfo(contentItem.LocalPath);
-
-            contentItem.CreatedDate = fileInfo.CreationTimeUtc;
-
+            string content = null;
+            using (var stream = _contentBlobProvider.OpenRead(contentPath))
+        {
             //Load raw content with metadata
-            var content = File.ReadAllText(contentItem.LocalPath);
-            var metaHeaders = ReadYamlHeader(content);
+                content = stream.ReadToString();
+            }
+            IDictionary<string, IEnumerable<string>> metaHeaders = null;
+            IDictionary themeSettings = null;
+            try
+            {
+                metaHeaders = ReadYamlHeader(content);
+            }
+            catch (Exception ex)
+            {
+                throw new ApplicationException(String.Format("Failed to read yaml header from \"{0}\"", contentItem.StoragePath), ex);
+            }
+
             content = RemoveYamlHeader(content);
 
-            if (renderContent)
+            var workContext = _workContextFactory();
+            if (workContext != null)
             {
-                var workContext = _workContextFactory();
-                if (workContext != null)
-                {
-                    var shopifyContext = workContext.ToShopifyModel(_urlBuilderFactory());
-                    var parameters = shopifyContext.ToLiquid() as Dictionary<string, object>;
-                    parameters.Add("settings", _liquidEngine.GetSettings());
-                    //Render content by liquid engine
-                    content = _liquidEngine.RenderTemplate(content, parameters);
-                }
-
-                //Render markdown content
-                if (String.Equals(Path.GetExtension(contentItem.LocalPath), ".md", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    content = _markdownRender.Transform(content);
-                }
+                var shopifyContext = workContext.ToShopifyModel(_urlBuilderFactory());
+                var parameters = shopifyContext.ToLiquid() as Dictionary<string, object>;
+              
+                themeSettings = _liquidEngine.GetSettings();
+                parameters.Add("settings", themeSettings);
+                //Render content by liquid engine
+                content = _liquidEngine.RenderTemplate(content, parameters);
             }
 
-            contentItem.LoadContent(content, metaHeaders);
+            //Render markdown content
+            if (string.Equals(Path.GetExtension(contentItem.StoragePath), ".md", StringComparison.InvariantCultureIgnoreCase))
+            {
+                content = _markdownRender.Transform(content);
+            }
+
+
+            contentItem.LoadContent(content, metaHeaders, themeSettings);
         }
 
         private static string RemoveYamlHeader(string text)
@@ -219,52 +212,31 @@ namespace VirtoCommerce.Storefront.Services
             return retVal;
         }
 
-        private FileSystemWatcher MonitorContentFileSystemChanges()
-        {
-            var fileSystemWatcher = new FileSystemWatcher();
-
-            if (Directory.Exists(_baseLocalPath))
-            {
-                fileSystemWatcher.Path = _baseLocalPath;
-                fileSystemWatcher.IncludeSubdirectories = true;
-
-                FileSystemEventHandler handler = (sender, args) =>
-                {
-                    _cacheManager.Clear();
-                };
-                RenamedEventHandler renamedHandler = (sender, args) =>
-                {
-                    _cacheManager.Clear();
-                };
-                var throttledHandler = handler.Throttle(TimeSpan.FromSeconds(5));
-                // Add event handlers.
-                fileSystemWatcher.Changed += throttledHandler;
-                fileSystemWatcher.Created += throttledHandler;
-                fileSystemWatcher.Deleted += throttledHandler;
-                fileSystemWatcher.Renamed += renamedHandler;
-
-                // Begin watching.
-                fileSystemWatcher.EnableRaisingEvents = true;
-            }
-            return fileSystemWatcher;
-        }
 
         //each content file  has a name pattern {name}.{language?}.{ext}
-        private class LocalizedFileInfo
+        private class LocalizedBlobInfo
         {
-            public LocalizedFileInfo(string filePath)
+            public LocalizedBlobInfo(string blobPath)
             {
-                LocalPath = filePath;
-                var parts = Path.GetFileName(filePath).Split('.');
+                Language = Language.InvariantLanguage;
+                Path = blobPath;
+                var parts = System.IO.Path.GetFileName(blobPath).Split('.');
                 Name = parts.FirstOrDefault();
                 if (parts.Count() == 3)
                 {
-                    Language = parts[1];
+                    try
+                    {
+                        Language = new Language(parts[1]);
+                    }
+                    catch(Exception)
+                    {
+                        Language = Language.InvariantLanguage;
+                    }
                 }
             }
             public string Name { get; private set; }
-            public string Language { get; private set; }
-            public string LocalPath { get; private set; }
+            public Language Language { get; private set; }
+            public string Path { get; private set; }
         }
     }
 }

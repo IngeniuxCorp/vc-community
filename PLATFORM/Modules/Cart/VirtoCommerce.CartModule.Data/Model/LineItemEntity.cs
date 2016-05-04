@@ -30,7 +30,7 @@ namespace VirtoCommerce.CartModule.Data.Model
         [Required]
 		[StringLength(64)]
 		public string CatalogId { get; set; }
-		[Required]
+
 		[StringLength(64)]
 		public string CategoryId { get; set; }
 
@@ -59,7 +59,10 @@ namespace VirtoCommerce.CartModule.Data.Model
 		[StringLength(2048)]
 		public string Comment { get; set; }
 
-		public bool IsReccuring { get; set; }
+        [StringLength(64)]
+        public string ValidationType { get; set; }
+
+        public bool IsReccuring { get; set; }
 
 		public bool TaxIncluded { get; set; }
 
@@ -84,9 +87,9 @@ namespace VirtoCommerce.CartModule.Data.Model
 		[Column(TypeName = "Money")]
 		public decimal PlacedPrice { get; set; }
 		[Column(TypeName = "Money")]
-		public decimal ExtendedPrice { get; private set; }
+		public decimal ExtendedPrice { get; set; }
 		[Column(TypeName = "Money")]
-		public decimal DiscountTotal { get; private set; }
+		public decimal DiscountTotal { get; set; }
 		[Column(TypeName = "Money")]
 		public decimal TaxTotal { get; set; }
 		[StringLength(64)]

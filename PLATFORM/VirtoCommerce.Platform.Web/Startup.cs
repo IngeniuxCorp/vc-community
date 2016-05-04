@@ -49,9 +49,11 @@ using VirtoCommerce.Platform.Data.Settings;
 using VirtoCommerce.Platform.Web;
 using VirtoCommerce.Platform.Web.BackgroundJobs;
 using VirtoCommerce.Platform.Web.Controllers.Api;
+using VirtoCommerce.Platform.Web.Hangfire;
 using VirtoCommerce.Platform.Web.Resources;
 using VirtoCommerce.Platform.Web.SignalR;
 using WebGrease.Extensions;
+using GlobalConfiguration = System.Web.Http.GlobalConfiguration;
 
 [assembly: OwinStartup(typeof(Startup))]
 
@@ -90,11 +92,20 @@ namespace VirtoCommerce.Platform.Web
 
             var moduleInitializerOptions = (ModuleInitializerOptions)container.Resolve<IModuleInitializerOptions>();
             moduleInitializerOptions.VirtualRoot = virtualRoot;
-            moduleInitializerOptions.RoutPrefix = routPrefix;
+            moduleInitializerOptions.RoutePrefix = routPrefix;
 
             //Initialize Platform dependencies
             const string connectionStringName = "VirtoCommerce";
-            InitializePlatform(app, container, connectionStringName);
+
+            var hangfireOptions = new HangfireOptions
+            {
+                StartServer = ConfigurationManager.AppSettings.GetValue("VirtoCommerce:Jobs.Enabled", true),
+                JobStorageType = ConfigurationManager.AppSettings.GetValue("VirtoCommerce:Jobs.StorageType", "Memory"),
+                DatabaseConnectionStringName = connectionStringName,
+            };
+            var hangfireLauncher = new HangfireLauncher(hangfireOptions);
+
+            InitializePlatform(app, container, connectionStringName, hangfireLauncher);
 
             var moduleManager = container.Resolve<IModuleManager>();
             var moduleCatalog = container.Resolve<IModuleCatalog>();
@@ -112,8 +123,6 @@ namespace VirtoCommerce.Platform.Web
             {
                 FileSystem = new Microsoft.Owin.FileSystems.PhysicalFileSystem(scriptsRelativePath)
             });
-
-
 
             // Register URL rewriter before modules initialization
             if (Directory.Exists(modulesPhysicalPath))
@@ -171,7 +180,9 @@ namespace VirtoCommerce.Platform.Web
                 ApiKeysHttpHeaderName = ConfigurationManager.AppSettings.GetValue("VirtoCommerce:Authentication:ApiKeys.HttpHeaderName", "api_key"),
                 ApiKeysQueryStringParameterName = ConfigurationManager.AppSettings.GetValue("VirtoCommerce:Authentication:ApiKeys.QueryStringParameterName", "api_key"),
             };
-            OwinConfig.Configure(app, container, connectionStringName, authenticationOptions);
+            OwinConfig.Configure(app, container, authenticationOptions);
+
+            hangfireLauncher.ConfigureOwin(app, container);
 
             RecurringJob.AddOrUpdate<SendNotificationsJobs>("SendNotificationsJob", x => x.Process(), "*/1 * * * *");
 
@@ -213,7 +224,7 @@ namespace VirtoCommerce.Platform.Web
             var tempCounterManager = new TempPerformanceCounterManager();
             GlobalHost.DependencyResolver.Register(typeof(IPerformanceCounterManager), () => tempCounterManager);
             var hubConfiguration = new HubConfiguration { EnableJavaScriptProxies = false };
-            app.MapSignalR("/" + moduleInitializerOptions.RoutPrefix + "signalr", hubConfiguration);
+            app.MapSignalR("/" + moduleInitializerOptions.RoutePrefix + "signalr", hubConfiguration);
 
             //Start background sample data installation if in config set concrete zip path (need for demo)
             var settingManager = container.Resolve<ISettingsManager>();
@@ -247,7 +258,7 @@ namespace VirtoCommerce.Platform.Web
             return assembly;
         }
 
-        private static void InitializePlatform(IAppBuilder app, IUnityContainer container, string connectionStringName)
+        private static void InitializePlatform(IAppBuilder app, IUnityContainer container, string connectionStringName, HangfireLauncher hangfireLauncher)
         {
             container.RegisterType<ICurrentUser, CurrentUser>(new HttpContextLifetimeManager());
             container.RegisterType<IUserNameResolver, UserNameResolver>();
@@ -264,8 +275,7 @@ namespace VirtoCommerce.Platform.Web
                 new PlatformDatabaseInitializer().InitializeDatabase(context);
             }
 
-            // Create Hangfire tables
-            new SqlServerStorage(connectionStringName);
+            hangfireLauncher.ConfigureDatabase();
 
             #endregion
 
@@ -398,7 +408,7 @@ namespace VirtoCommerce.Platform.Web
 
             #region Dynamic Properties
 
-            container.RegisterType<IDynamicPropertyService, DynamicPropertyService>();
+            container.RegisterType<IDynamicPropertyService, DynamicPropertyService>(new ContainerControlledLifetimeManager());
 
             #endregion
 
@@ -428,31 +438,22 @@ namespace VirtoCommerce.Platform.Web
 
             #region Assets
 
-            var assetsConnection = ConfigurationManager.ConnectionStrings["AssetsConnectionString"];
+            var blobConnectionString = BlobConnectionString.Parse(ConfigurationManager.ConnectionStrings["AssetsConnectionString"].ConnectionString);
 
-            if (assetsConnection != null)
+            if (string.Equals(blobConnectionString.Provider, FileSystemBlobProvider.ProviderName, StringComparison.OrdinalIgnoreCase))
             {
-                var properties = assetsConnection.ConnectionString.ToDictionary(";", "=");
-                var provider = properties["provider"];
-                var assetsConnectionString = properties.ToString(";", "=", "provider");
+                var fileSystemBlobProvider = new FileSystemBlobProvider(NormalizePath(blobConnectionString.RootPath), blobConnectionString.PublicUrl);
 
-                if (string.Equals(provider, FileSystemBlobProvider.ProviderName, StringComparison.OrdinalIgnoreCase))
-                {
-                    var storagePath = HostingEnvironment.MapPath(properties["rootPath"]);
-                    var publicUrl = properties["publicUrl"];
-                    var fileSystemBlobProvider = new FileSystemBlobProvider(storagePath, publicUrl);
-
-                    container.RegisterInstance<IBlobStorageProvider>(fileSystemBlobProvider);
-                    container.RegisterInstance<IBlobUrlResolver>(fileSystemBlobProvider);
-                }
-                else if (string.Equals(provider, AzureBlobProvider.ProviderName, StringComparison.OrdinalIgnoreCase))
-                {
-                    var azureBlobProvider = new AzureBlobProvider(assetsConnectionString);
-
-                    container.RegisterInstance<IBlobStorageProvider>(azureBlobProvider);
-                    container.RegisterInstance<IBlobUrlResolver>(azureBlobProvider);
-                }
+                container.RegisterInstance<IBlobStorageProvider>(fileSystemBlobProvider);
+                container.RegisterInstance<IBlobUrlResolver>(fileSystemBlobProvider);
             }
+            else if (string.Equals(blobConnectionString.Provider, AzureBlobProvider.ProviderName, StringComparison.OrdinalIgnoreCase))
+            {
+                var azureBlobProvider = new AzureBlobProvider(blobConnectionString.ConnectionString);
+                container.RegisterInstance<IBlobStorageProvider>(azureBlobProvider);
+                container.RegisterInstance<IBlobUrlResolver>(azureBlobProvider);
+            }
+
 
             #endregion
 
@@ -502,6 +503,24 @@ namespace VirtoCommerce.Platform.Web
             #endregion
         }
 
+        private static string NormalizePath(string path)
+        {
+            var retVal = path;
+            if (path.StartsWith("~"))
+            {
+                retVal = HostingEnvironment.MapPath(path);
+            }
+            else if (Path.IsPathRooted(path))
+            {
+                retVal = path;
+            }
+            else
+            {
+                retVal = HostingEnvironment.MapPath("~/");
+                retVal += path;
+            }
+            return Path.GetFullPath(retVal);
+        }
         private static string MakeRelativePath(string rootPath, string fullPath)
         {
             var rootUri = new Uri(rootPath);

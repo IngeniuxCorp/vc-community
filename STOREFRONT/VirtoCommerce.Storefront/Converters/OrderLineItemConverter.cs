@@ -26,6 +26,7 @@ namespace VirtoCommerce.Storefront.Converters
                 webModel.DynamicProperties = lineItem.DynamicProperties.Select(dp => dp.ToWebModel()).ToList();
             }
 
+            webModel.BasePrice = new Money(lineItem.BasePrice ?? 0, currency);
             webModel.Price = new Money(lineItem.Price ?? 0, currency);
             webModel.Tax = new Money(lineItem.Tax ?? 0, currency);
 

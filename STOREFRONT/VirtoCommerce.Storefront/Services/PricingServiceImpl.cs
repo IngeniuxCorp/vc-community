@@ -9,6 +9,7 @@ using VirtoCommerce.Storefront.Model;
 using VirtoCommerce.Storefront.Model.Catalog;
 using VirtoCommerce.Storefront.Model.Pricing.Services;
 using VirtoCommerce.Storefront.Converters;
+using VirtoCommerce.Storefront.Model.Common;
 
 namespace VirtoCommerce.Storefront.Services
 {
@@ -26,50 +27,36 @@ namespace VirtoCommerce.Storefront.Services
         public async Task EvaluateProductPricesAsync(IEnumerable<Product> products)
         {
             var workContext = _workContextFactory();
-
             //Evaluate products prices
-            var evalContext = new VirtoCommerceDomainPricingModelPriceEvaluationContext
-            {
-                ProductIds = products.Select(p => p.Id).ToList(),
-                PricelistIds = workContext.CurrentPricelists.Select(p => p.Id).ToList(),
-                CatalogId = workContext.CurrentStore.Catalog,
-                CustomerId = workContext.CurrentCustomer.Id,
-                Language = workContext.CurrentLanguage.CultureName,
-                CertainDate = workContext.StorefrontUtcNow,
-                StoreId = workContext.CurrentStore.Id
-            };
+            var evalContext = products.ToServiceModel(workContext);
 
             var pricesResponse = await _pricingApi.PricingModuleEvaluatePricesAsync(evalContext);
+            ApplyProductPricesInternal(products, pricesResponse);
+        }
 
-            var alreadyDefinedProductsPriceGroups = pricesResponse.Select(x => x.ToWebModel(workContext.AllCurrencies, workContext.CurrentLanguage)).GroupBy(x => x.ProductId);
-            foreach (var product in products)
-            {
-                var productPricesGroup = alreadyDefinedProductsPriceGroups.FirstOrDefault(x => x.Key == product.Id);
-                if (productPricesGroup != null)
-                {
-                    //Get first price for each currency
-                    product.Prices = productPricesGroup.GroupBy(x => x.Currency).Select(x => x.FirstOrDefault()).Where(x => x != null).ToList();
-                }
-                //Need add product price for all store currencies (even if not returned from api need make it by currency exchange convertation)
-                foreach (var storeCurrency in workContext.CurrentStore.Currencies)
-                {
-                    var price = product.Prices.FirstOrDefault(x => x.Currency == storeCurrency);
-                    if (price == null)
-                    {
-                        price = new ProductPrice(storeCurrency);
-                        if (product.Prices.Any())
-                        {
-                            price = product.Prices.First().ConvertTo(storeCurrency);
-                        }
-                        product.Prices.Add(price);
-                    }
-                }
-                product.Currency = workContext.CurrentCurrency;
-                product.Price = product.Prices.FirstOrDefault(x => x.Currency.Equals(workContext.CurrentCurrency));
-            }
+        public void EvaluateProductPrices(IEnumerable<Product> products)
+        {
+            var workContext = _workContextFactory();
+            //Evaluate products prices
+            var evalContext = products.ToServiceModel(workContext);
 
+            var pricesResponse = _pricingApi.PricingModuleEvaluatePrices(evalContext);
+            ApplyProductPricesInternal(products, pricesResponse);
         }
 
         #endregion
+
+        private void ApplyProductPricesInternal(IEnumerable<Product> products, IEnumerable<VirtoCommercePricingModuleWebModelPrice> prices)
+        {
+            var workContext = _workContextFactory();
+
+            foreach (var product in products)
+            {
+                var productPrices = prices.Where(x => x.ProductId == product.Id)
+                                          .Select(x => x.ToWebModel(workContext.AllCurrencies, workContext.CurrentLanguage));
+                product.ApplyPrices(productPrices, workContext.CurrentCurrency, workContext.CurrentStore.Currencies);
+            }
+
+        }
     }
 }

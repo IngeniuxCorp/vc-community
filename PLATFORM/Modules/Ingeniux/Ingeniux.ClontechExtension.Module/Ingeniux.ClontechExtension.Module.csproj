@@ -200,14 +200,6 @@
       <Project>{061c4a3e-4d94-4807-9209-07d9f6392830}</Project>
       <Name>VirtoCommerce.OrderModule.Data</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\PaymentGateways\DiBs\DiBs.csproj">
-      <Project>{0933d572-27e9-454a-a530-52a50c089c0d}</Project>
-      <Name>DiBs</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\PaymentGateways\Klarna.PaymentGatewaysModule.Web\Klarna.Checkout.Euro.csproj">
-      <Project>{f212ed2f-6e93-4931-a8df-7a128d5dd96b}</Project>
-      <Name>Klarna.Checkout.Euro</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\Search\VirtoCommerce.SearchModule.Data\VirtoCommerce.SearchModule.Data.csproj">
       <Project>{e5c50d57-9f69-4ba2-b1c5-f9fd7473dfff}</Project>
       <Name>VirtoCommerce.SearchModule.Data</Name>

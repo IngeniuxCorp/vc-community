@@ -21,7 +21,7 @@ namespace VirtoCommerce.Storefront.Converters
 
             lineItemWebModel.ImageUrl = product.PrimaryImage != null ? product.PrimaryImage.Url : null;
             lineItemWebModel.ListPrice = product.Price.ListPrice;
-            lineItemWebModel.SalePrice = product.Price.SalePrice;
+            lineItemWebModel.SalePrice = product.Price.GetTierPrice(quantity).Price;
             lineItemWebModel.ProductId = product.Id;
             lineItemWebModel.Quantity = quantity;
 
@@ -58,6 +58,7 @@ namespace VirtoCommerce.Storefront.Converters
             webModel.TaxTotal = new Money(serviceModel.TaxTotal ?? 0, currency);
             webModel.Weight = (decimal)(serviceModel.Weight ?? 0);
             webModel.Width = (decimal)(serviceModel.Width ?? 0);
+            webModel.ValidationType = EnumUtility.SafeParse(serviceModel.ValidationType, ValidationType.PriceAndQuantity);
 
             return webModel;
         }
@@ -83,6 +84,7 @@ namespace VirtoCommerce.Storefront.Converters
             serviceModel.VolumetricWeight = (double)(webModel.VolumetricWeight ?? 0);
             serviceModel.Weight = (double)webModel.Weight;
             serviceModel.Width = (double)webModel.Width;
+            serviceModel.ValidationType = webModel.ValidationType.ToString();
 
             return serviceModel;
         }

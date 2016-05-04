@@ -4,12 +4,11 @@ using System.Configuration;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Security.Claims;
 using System.Security.Principal;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Hosting;
-using CacheManager.Core;
 using Microsoft.AspNet.Identity;
 using Microsoft.Owin;
 using Microsoft.Owin.Security;
@@ -28,6 +27,8 @@ using VirtoCommerce.Storefront.Model.Customer;
 using VirtoCommerce.Storefront.Model.Customer.Services;
 using VirtoCommerce.Storefront.Model.LinkList.Services;
 using VirtoCommerce.Storefront.Model.Quote.Services;
+using VirtoCommerce.Storefront.Model.Services;
+using VirtoCommerce.Storefront.Model.StaticContent;
 
 namespace VirtoCommerce.Storefront.Owin
 {
@@ -39,12 +40,11 @@ namespace VirtoCommerce.Storefront.Owin
         private static readonly Country[] _allCountries = GetAllCounries();
 
         private readonly IStoreModuleApi _storeApi;
-        private readonly IVirtoCommercePlatformApi _platformApi;
         private readonly ICommerceCoreModuleApi _commerceApi;
         private readonly IPricingModuleApi _pricingModuleApi;
         private readonly IQuoteRequestBuilder _quoteRequestBuilder;
-        private readonly ICMSContentModuleApi _cmsApi;
-        private readonly ICacheManager<object> _cacheManager;
+        private readonly ILocalCacheManager _cacheManager;
+        private readonly IStaticContentService _staticContentService;
 
         private readonly UnityContainer _container;
 
@@ -54,12 +54,11 @@ namespace VirtoCommerce.Storefront.Owin
             //Be AWARE! WorkContextOwinMiddleware crated once in first application start
             //and  there can not be resolved and stored in fields services using WorkContext as dependency (WorkCOntext has a per request lifetime)
             _storeApi = container.Resolve<IStoreModuleApi>();
-            _platformApi = container.Resolve<IVirtoCommercePlatformApi>();
             _quoteRequestBuilder = container.Resolve<IQuoteRequestBuilder>();
-            _cmsApi = container.Resolve<ICMSContentModuleApi>();
             _pricingModuleApi = container.Resolve<IPricingModuleApi>();
             _commerceApi = container.Resolve<ICommerceCoreModuleApi>();
-            _cacheManager = container.Resolve<ICacheManager<object>>();
+            _cacheManager = container.Resolve<ILocalCacheManager>();
+            _staticContentService = container.Resolve<IStaticContentService>();
             _container = container;
         }
 
@@ -68,15 +67,15 @@ namespace VirtoCommerce.Storefront.Owin
             if (IsStorefrontRequest(context.Request))
             {
                 var workContext = _container.Resolve<WorkContext>();
-                var urlBuilder = _container.Resolve<IStorefrontUrlBuilder>();
 
                 var linkListService = _container.Resolve<IMenuLinkListService>();
                 var cartBuilder = _container.Resolve<ICartBuilder>();
+                var catalogSearchService = _container.Resolve<ICatalogSearchService>();
 
                 // Initialize common properties
                 workContext.RequestUrl = context.Request.Uri;
                 workContext.AllCountries = _allCountries;
-                workContext.AllStores = await _cacheManager.GetAsync("GetAllStores", "ApiRegion", async () => { return await GetAllStoresAsync(); });
+                workContext.AllStores = await _cacheManager.GetAsync("GetAllStores", "ApiRegion", async () => await GetAllStoresAsync());
                 if (workContext.AllStores != null && workContext.AllStores.Any())
                 {
                     // Initialize request specific properties
@@ -95,10 +94,58 @@ namespace VirtoCommerce.Storefront.Owin
 
                     var qs = HttpUtility.ParseQueryString(workContext.RequestUrl.Query);
                     //Initialize catalog search criteria
-                    workContext.CurrentCatalogSearchCriteria = new CatalogSearchCriteria(qs);
-                    workContext.CurrentCatalogSearchCriteria.CatalogId = workContext.CurrentStore.Catalog;
-                    workContext.CurrentCatalogSearchCriteria.Currency = workContext.CurrentCurrency;
-                    workContext.CurrentCatalogSearchCriteria.Language = workContext.CurrentLanguage;
+                    workContext.CurrentCatalogSearchCriteria = new CatalogSearchCriteria(workContext.CurrentLanguage, workContext.CurrentCurrency, qs)
+                    {
+                        CatalogId = workContext.CurrentStore.Catalog
+                    };
+
+                    //This line make delay categories loading initialization (categories can be evaluated on view rendering time)
+                    workContext.Categories = new MutablePagedList<Category>((pageNumber, pageSize) =>
+                    {
+                        var criteria = workContext.CurrentCatalogSearchCriteria.Clone();
+                        criteria.PageNumber = pageNumber;
+                        criteria.PageSize = pageSize;
+                        var result = catalogSearchService.SearchCategories(criteria);
+                        foreach (var category in result)
+                        {
+                            category.Products = new MutablePagedList<Product>((pageNumber2, pageSize2) =>
+                            {
+                                criteria.CategoryId = category.Id;
+                                criteria.PageNumber = pageNumber2;
+                                criteria.PageSize = pageSize2;
+                                var searchResult = catalogSearchService.SearchProducts(criteria);
+                                //Because catalog search products returns also aggregations we can use it to populate workContext using C# closure
+                                //now workContext.Aggregation will be contains preloaded aggregations for current category
+                                workContext.Aggregations = new MutablePagedList<Aggregation>(searchResult.Aggregations);
+                                return searchResult.Products;
+                            });
+                        }
+                        return result;
+                    });
+                    //This line make delay products loading initialization (products can be evaluated on view rendering time)
+                    workContext.Products = new MutablePagedList<Product>((pageNumber, pageSize) =>
+                    {
+                        var criteria = workContext.CurrentCatalogSearchCriteria.Clone();
+                        criteria.PageNumber = pageNumber;
+                        criteria.PageSize = pageSize;
+
+                        var result = catalogSearchService.SearchProducts(criteria);
+                        //Prevent double api request for get aggregations
+                        //Because catalog search products returns also aggregations we can use it to populate workContext using C# closure
+                        //now workContext.Aggregation will be contains preloaded aggregations for current search criteria
+                        workContext.Aggregations = new MutablePagedList<Aggregation>(result.Aggregations);
+                        return result.Products;
+                    });
+                    //This line make delay aggregation loading initialization (aggregation can be evaluated on view rendering time)
+                    workContext.Aggregations = new MutablePagedList<Aggregation>((pageNumber, pageSize) =>
+                    {
+                        var criteria = workContext.CurrentCatalogSearchCriteria.Clone();
+                        criteria.PageNumber = pageNumber;
+                        criteria.PageSize = pageSize;
+                        //Force to load products and its also populate workContext.Aggregations by preloaded values
+                        workContext.Products.Slice(pageNumber, pageSize);
+                        return workContext.Aggregations;
+                    });
 
                     workContext.CurrentOrderSearchCriteria = new Model.Order.OrderSearchCriteria(qs);
                     workContext.CurrentQuoteSearchCriteria = new Model.Quote.QuoteSearchCriteria(qs);
@@ -108,6 +155,18 @@ namespace VirtoCommerce.Storefront.Owin
                     //Validate that current customer has to store access
                     ValidateUserStoreLogin(context, workContext.CurrentCustomer, workContext.CurrentStore);
                     MaintainAnonymousCustomerCookie(context, workContext);
+
+                    // Gets the collection of external login providers
+                    var externalAuthTypes = context.Authentication.GetExternalAuthenticationTypes();
+
+                    workContext.ExternalLoginProviders = externalAuthTypes.Select(at => new LoginProvider
+                    {
+                        AuthenticationType = at.AuthenticationType,
+                        Caption = at.Caption,
+                        Properties = at.Properties
+                    }).ToList();
+
+                    workContext.ApplicationSettings = GetApplicationSettings();
 
                     //Do not load shopping cart and other for resource requests
                     if (!IsAssetRequest(context.Request))
@@ -124,11 +183,29 @@ namespace VirtoCommerce.Storefront.Owin
 
                         var linkLists = await _cacheManager.GetAsync("GetAllStoreLinkLists-" + workContext.CurrentStore.Id, "ApiRegion", async () => await linkListService.LoadAllStoreLinkListsAsync(workContext.CurrentStore.Id));
                         workContext.CurrentLinkLists = linkLists.Where(x => x.Language == workContext.CurrentLanguage).ToList();
+                        // load all static content
+                        var staticContents = _cacheManager.Get(string.Join(":", "AllStoreStaticContent", workContext.CurrentStore.Id), "ContentRegion", () =>
+                        {
+                            var allContentItems = _staticContentService.LoadStoreStaticContent(workContext.CurrentStore).ToList();
+                            var blogs = allContentItems.OfType<Blog>().ToArray();
+                            var blogArticlesGroup = allContentItems.OfType<BlogArticle>().GroupBy(x => x.BlogName, x => x).ToList();
 
+                            foreach (var blog in blogs)
+                            {
+                                var blogArticles = blogArticlesGroup.FirstOrDefault(x => string.Equals(x.Key, blog.Name, StringComparison.OrdinalIgnoreCase));
+                                if (blogArticles != null)
+                                {
+                                    blog.Articles = new MutablePagedList<BlogArticle>(blogArticles);
+                                }
+                            }
 
-                        //Initialize blogs search criteria 
-                        //TODO: read from query string
-                        workContext.CurrentBlogSearchCritera = new Model.StaticContent.BlogSearchCriteria(qs);
+                            return new { Pages = allContentItems, Blogs = blogs };
+                        });
+                        workContext.Pages = new MutablePagedList<ContentItem>(staticContents.Pages);
+                        workContext.Blogs = new MutablePagedList<Blog>(staticContents.Blogs);
+
+                        // Initialize blogs search criteria 
+                        workContext.CurrentBlogSearchCritera = new BlogSearchCriteria(qs);
 
                         //Pricelists
                         var pricelistCacheKey = string.Join("-", "EvaluatePriceLists", workContext.CurrentStore.Id, workContext.CurrentCustomer.Id);
@@ -157,6 +234,7 @@ namespace VirtoCommerce.Storefront.Owin
             return !request.Path.StartsWithSegments(new PathString("/admin"))
                 && !request.Path.StartsWithSegments(new PathString("/areas/admin"))
                 && !request.Path.StartsWithSegments(new PathString("/api"))
+                && !request.Path.StartsWithSegments(new PathString("/assets"))
                 && !request.Path.StartsWithSegments(new PathString("/favicon.ico"));
         }
 
@@ -170,8 +248,8 @@ namespace VirtoCommerce.Storefront.Owin
 
         private bool IsAssetRequest(IOwinRequest request)
         {
-            var retVal = string.Equals(request.Method, "GET", StringComparison.OrdinalIgnoreCase); 
-            if(retVal)
+            var retVal = string.Equals(request.Method, "GET", StringComparison.OrdinalIgnoreCase);
+            if (retVal)
             {
                 retVal = request.Uri.AbsolutePath.Contains("themes/assets") || !string.IsNullOrEmpty(Path.GetExtension(request.Uri.ToString()));
             }
@@ -291,20 +369,24 @@ namespace VirtoCommerce.Storefront.Owin
         private string GetStoreIdFromUrl(IOwinContext context, ICollection<Store> stores)
         {
             //Try first find by store url (if it defined)
-            var retVal = stores.Where(x => x.IsStoreUrl(context.Request.Uri)).Select(x => x.Id).FirstOrDefault();
-            if (retVal == null)
+            string retVal = null;
+
+            foreach (var store in stores)
             {
-                foreach (var store in stores)
+                var pathString = new PathString("/" + store.Id);
+                PathString remainingPath;
+                if (context.Request.Path.StartsWithSegments(pathString, out remainingPath))
                 {
-                    var pathString = new PathString("/" + store.Id);
-                    PathString remainingPath;
-                    if (context.Request.Path.StartsWithSegments(pathString, out remainingPath))
-                    {
-                        retVal = store.Id;
-                        break;
-                    }
+                    retVal = store.Id;
+                    break;
                 }
             }
+
+            if (retVal == null)
+            {
+                retVal = stores.Where(x => x.IsStoreUrl(context.Request.Uri)).Select(x => x.Id).FirstOrDefault();
+            }
+
             return retVal;
         }
 
@@ -337,8 +419,13 @@ namespace VirtoCommerce.Storefront.Owin
         private string GetLanguageFromUrl(IOwinContext context, string[] languages)
         {
             var requestPath = context.Request.Path.ToString();
-            var retVal = languages.FirstOrDefault(x => requestPath.Contains(string.Format("/{0}/", x)));
-            return retVal;
+            var regexpPattern = string.Format(@"\/({0})\/?", string.Join("|", languages));
+            var match = Regex.Match(requestPath, regexpPattern, RegexOptions.IgnoreCase);
+            if (match.Success && match.Groups.Count > 1)
+            {
+                return match.Groups[1].Value;
+            }
+            return null;
         }
 
         private static Currency GetCurrency(IOwinContext context, Store store)
@@ -415,6 +502,18 @@ namespace VirtoCommerce.Storefront.Owin
             }
 
             return country;
+        }
+
+        private IDictionary<string, object> GetApplicationSettings()
+        {
+            var appSettings = new Dictionary<string, object>();
+
+            foreach (var key in ConfigurationManager.AppSettings.AllKeys)
+            {
+                appSettings.Add(key, ConfigurationManager.AppSettings[key]);
+            }
+
+            return appSettings;
         }
     }
 }

@@ -19,7 +19,7 @@ IF %ERRORLEVEL% NEQ 0 (
 SET NUGET=nuget.exe
 where nuget.exe 2>nul >nul
 IF %ERRORLEVEL% NEQ 0 (
-    SET NUGET=%~dp0%Tools\NuGet\nuget.exe
+    SET "NUGET=%~dp0%Tools\NuGet\nuget.exe"
 )
 
 :: Setup
@@ -27,21 +27,21 @@ IF %ERRORLEVEL% NEQ 0 (
 
 setlocal enabledelayedexpansion
 
-SET ARTIFACTS=%~dp0%artifacts
+SET "ARTIFACTS=%~dp0%artifacts"
 
 IF NOT DEFINED DEPLOYMENT_SOURCE (
-	SET DEPLOYMENT_SOURCE=%~dp0%.
+	SET "DEPLOYMENT_SOURCE=%~dp0%."
 )
 
 IF NOT DEFINED DEPLOYMENT_TARGET (
-	SET DEPLOYMENT_TARGET=%ARTIFACTS%\wwwroot
+	SET "DEPLOYMENT_TARGET=%ARTIFACTS%\wwwroot"
 )
 
 IF NOT DEFINED NEXT_MANIFEST_PATH (
-	SET NEXT_MANIFEST_PATH=%ARTIFACTS%\manifest
+	SET "NEXT_MANIFEST_PATH=%ARTIFACTS%\manifest"
 
 	IF NOT DEFINED PREVIOUS_MANIFEST_PATH (
-		SET PREVIOUS_MANIFEST_PATH=%ARTIFACTS%\manifest
+		SET "PREVIOUS_MANIFEST_PATH=%ARTIFACTS%\manifest"
 	)
 )
 
@@ -52,10 +52,10 @@ IF NOT DEFINED KUDU_SYNC_CMD (
 	IF !ERRORLEVEL! NEQ 0 goto error
 
 	:: Locally just running "kuduSync" would also work
-	SET KUDU_SYNC_CMD=%appdata%\npm\kuduSync.cmd
+	SET "KUDU_SYNC_CMD=%appdata%\npm\kuduSync.cmd"
 )
 IF NOT DEFINED DEPLOYMENT_TEMP (
-	SET DEPLOYMENT_TEMP=%temp%\___deployTemp%random%
+	SET "DEPLOYMENT_TEMP=%temp%\___deployTemp%random%"
 	SET CLEAN_LOCAL_DEPLOYMENT_TEMP=true
 )
 
@@ -82,42 +82,47 @@ SET PUBLISHED_MODULES=%PUBLISHED_WEBSITES%\Modules
 
 echo Handling .NET Web Application deployment.
 
-IF /I "%APPSETTING_VirtoCommerce_DeployApplications%" NEQ "Web Admin Only" (
+IF /I "%APPSETTING_VirtoCommerce_DeployApplications%" NEQ "Manager Only" (
     :: Build storefront
     echo Building %STORE_SOLUTION_FILE%
 
     call :ExecuteCmd "%NUGET%" restore "%STORE_SOLUTION_FILE%"
     IF !ERRORLEVEL! NEQ 0 goto error
 
-    call :ExecuteCmd "%MSBUILD_PATH%" "%STORE_SOLUTION_FILE%" /nologo /verbosity:m /t:Build /p:Configuration=Release;DebugType=none;AllowedReferenceRelatedFileExtensions=":";SolutionDir="%STORE_SOLUTION_DIR%\.\\";OutputPath="%DEPLOYMENT_TEMP%" %SCM_BUILD_ARGS%
+    call :ExecuteCmd "%MSBUILD_PATH%" "%STORE_SOLUTION_FILE%" /nologo /verbosity:m /t:Build /p:Configuration=Release;Platform="Any CPU";DebugType=none;AllowedReferenceRelatedFileExtensions=":";SolutionDir="%STORE_SOLUTION_DIR%\.\\";OutputPath="%DEPLOYMENT_TEMP%" %SCM_BUILD_ARGS%
     IF !ERRORLEVEL! NEQ 0 goto error
 
     call :ExecuteCmd rename "%PUBLISHED_WEBSITES%\VirtoCommerce.Storefront" store
     IF !ERRORLEVEL! NEQ 0 goto error
+
+    :: Clear build output
+    call :ExecuteCmd "%MSBUILD_PATH%" "%STORE_SOLUTION_FILE%" /nologo /verbosity:m /t:Clean /p:Configuration=Release;Platform="Any CPU";SolutionDir="%STORE_SOLUTION_DIR%\.\\" %SCM_BUILD_ARGS%
 )
 
-:: Build platform
-echo Building %ADMIN_SOLUTION_FILE%
+IF /I "%APPSETTING_VirtoCommerce_DeployApplications%" NEQ "Storefront Only" (
+    :: Build platform
+    echo Building %ADMIN_SOLUTION_FILE%
 
-:: 1. Restore NuGet packages
-call :ExecuteCmd "%NUGET%" restore "%ADMIN_SOLUTION_FILE%"
-IF !ERRORLEVEL! NEQ 0 goto error
-
-:: 2. Build to the temporary path
-call :ExecuteCmd "%MSBUILD_PATH%" "%ADMIN_SOLUTION_FILE%" /nologo /verbosity:m /t:Build /p:Configuration=Release;DebugType=none;AllowedReferenceRelatedFileExtensions=".xml";SolutionDir="%ADMIN_SOLUTION_DIR%\.\\";OutputPath="%DEPLOYMENT_TEMP%";VCModulesOutputDir="%PUBLISHED_MODULES%" %SCM_BUILD_ARGS%
-IF !ERRORLEVEL! NEQ 0 goto error
-
-call :ExecuteCmd rename "%PUBLISHED_WEBSITES%\VirtoCommerce.Platform.Web" admin
-IF !ERRORLEVEL! NEQ 0 goto error
-
-:: Move modules inside WebAdmin
-IF EXIST "%PUBLISHED_MODULES%" (
-    call :ExecuteCmd move /Y "%PUBLISHED_MODULES%" "%PUBLISHED_WEBSITES%\admin\Modules"
+    :: 1. Restore NuGet packages
+    call :ExecuteCmd "%NUGET%" restore "%ADMIN_SOLUTION_FILE%"
     IF !ERRORLEVEL! NEQ 0 goto error
-)
 
-:: Clear build output
-call :ExecuteCmd "%MSBUILD_PATH%" "%ADMIN_SOLUTION_FILE%" /nologo /verbosity:m /t:Clean /p:Configuration=Release;SolutionDir="%ADMIN_SOLUTION_DIR%\.\\" %SCM_BUILD_ARGS%
+    :: 2. Build to the temporary path
+    call :ExecuteCmd "%MSBUILD_PATH%" "%ADMIN_SOLUTION_FILE%" /nologo /verbosity:m /t:Build /p:Configuration=Release;Platform="Any CPU";DebugType=none;AllowedReferenceRelatedFileExtensions=".xml";SolutionDir="%ADMIN_SOLUTION_DIR%\.\\";OutputPath="%DEPLOYMENT_TEMP%";VCModulesOutputDir="%PUBLISHED_MODULES%" %SCM_BUILD_ARGS%
+    IF !ERRORLEVEL! NEQ 0 goto error
+
+    call :ExecuteCmd rename "%PUBLISHED_WEBSITES%\VirtoCommerce.Platform.Web" admin
+    IF !ERRORLEVEL! NEQ 0 goto error
+
+    :: Move modules inside WebAdmin
+    IF EXIST "%PUBLISHED_MODULES%" (
+        call :ExecuteCmd move /Y "%PUBLISHED_MODULES%" "%PUBLISHED_WEBSITES%\admin\Modules"
+        IF !ERRORLEVEL! NEQ 0 goto error
+    )
+
+    :: Clear build output
+    call :ExecuteCmd "%MSBUILD_PATH%" "%ADMIN_SOLUTION_FILE%" /nologo /verbosity:m /t:Clean /p:Configuration=Release;Platform="Any CPU";SolutionDir="%ADMIN_SOLUTION_DIR%\.\\" %SCM_BUILD_ARGS%
+)
 
 :: 3. KuduSync
 IF /I "%IN_PLACE_DEPLOYMENT%" NEQ "1" (

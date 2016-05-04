@@ -12,14 +12,12 @@ namespace VirtoCommerce.CoreModule.Data.Model
 	public class SeoUrlKeyword : AuditableEntity
 	{
 		[StringLength(5)]
-		[Required]
 		public string Language { get; set; }
-
 
 		[StringLength(255)]
 		[Required]
 		[CustomValidation(typeof(SeoUrlKeyword), "ValidateKeywordUrl", ErrorMessage = @"Keyword can't contain $+;=%{}[]|\/@ ~#!^*&?:'<>, characters")]
-        [Index]
+        [Index("KeywordStoreId", Order = 1)]
         public string Keyword { get; set; }
 
 		[StringLength(255)]
@@ -36,7 +34,11 @@ namespace VirtoCommerce.CoreModule.Data.Model
         [Index("ObjectIdAndObjectType", 2)]
         public string ObjectType { get; set; }
 
-		[StringLength(255)]
+        [StringLength(128)]
+        [Index("KeywordStoreId", Order = 2)]
+        public string StoreId { get; set; }
+
+        [StringLength(255)]
 		public string Title { get; set; }
 
 		[StringLength(1024)]

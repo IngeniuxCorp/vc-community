@@ -6,8 +6,8 @@ using VirtoCommerce.Domain.Search.Model;
 using VirtoCommerce.Domain.Search.Services;
 using VirtoCommerce.Platform.Core.Asset;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.SearchModule.Data.Services;
 using VirtoCommerce.SearchModule.Web.Converters;
-using VirtoCommerce.SearchModule.Web.Model;
 using moduleModel = VirtoCommerce.Domain.Catalog.Model;
 
 namespace VirtoCommerce.SearchModule.Web.Services
@@ -87,7 +87,7 @@ namespace VirtoCommerce.SearchModule.Web.Services
                 itemsOrderedList.AddRange(uniqueKeys);
 
                 // Now load items from repository
-                var currentItems = _itemService.GetByIds(uniqueKeys.ToArray(), responseGroup);
+                var currentItems = _itemService.GetByIds(uniqueKeys.ToArray(), responseGroup, criteria.Catalog);
 
                 var orderedList = currentItems.OrderBy(i => itemsOrderedList.IndexOf(i.Id));
                 items.AddRange(orderedList);
